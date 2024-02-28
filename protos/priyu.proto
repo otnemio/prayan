@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+// import "google/protobuf/timestamp.proto";
+
+service Chirper {
+  rpc Command(PRequest) returns (PReply) {}
+}
+
+message PRequest {
+  string msg = 1;
+}
+
+message PReply {
+  string msg = 1;
+}
