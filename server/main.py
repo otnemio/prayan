@@ -1,6 +1,6 @@
 import os, yaml, logging, time, grpc, priyu_pb2, priyu_pb2_grpc
-from rich.logging import RichHandler
 import multiprocessing as mp
+from rich.logging import RichHandler
 from concurrent import futures
 from NorenRestApiPy.NorenApi import  NorenApi
 
@@ -44,8 +44,7 @@ class ShoonyaApiPy(NorenApi):
         self.feed_opened = False
         self.loggedin = False
         self.list_tokens = []
-        NorenApi.__init__(self, host='https://api.shoonya.com/NorenWClientTP/', websocket='wss://api.shoonya.com/NorenWSTP/')        
-        # api = self
+        NorenApi.__init__(self, host='https://api.shoonya.com/NorenWClientTP/', websocket='wss://api.shoonya.com/NorenWSTP/')
     
     def event_handler_feed_update(self,tick_data):
         if self.feed_opened:
