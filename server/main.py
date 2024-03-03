@@ -1,20 +1,49 @@
 import os, yaml, logging, time, grpc, priyu_pb2, priyu_pb2_grpc
 import multiprocessing as mp
+from datetime import datetime
+from google.protobuf.timestamp_pb2 import Timestamp
 from rich.logging import RichHandler
 from concurrent import futures
 from NorenRestApiPy.NorenApi import  NorenApi
 
 class Servicer(priyu_pb2_grpc.ChirperServicer):
+    def __init__(self) -> None:
+        super().__init__()
+        self.ts = Timestamp()
     
     def Command(self, request, context):
         log.info("Good, World!")
         return priyu_pb2.PReply(msg=f"Good")
+    
+    def BracketOrder(self, request, context):
+        now = datetime.now()
+        self.ts.FromDatetime(now)
+        # MD["orders"][now] = None
+        MD["orders"][now] = [12345,23456,34567]
+        return priyu_pb2.OrderReply(ordertime=self.ts)
+    
+    def AllOrdersStatus(self, request, context):
+        try:
+            orders = []
+            for key, val in MD["orders"].items():
+                log.info(f"{key} {val}")
+                self.ts.FromDatetime(key)
+                children = []
+                for child in val:
+                    children.append(child)
+                orders.append(priyu_pb2.Order(ordertime=self.ts,symbol='BEL',status=priyu_pb2.Status.COMPLETE,childorders=children))
+            return priyu_pb2.Orders(orders=orders)
+        except Exception as e:
+            log.error(e)
 
 def initialize():
-    global log, jobs, api
+    global log, jobs, api, orders, MD
     jobs = []
     log = logging.getLogger("rich")
     api = None
+    manager = mp.Manager()
+    MD = manager.dict()
+    MD["orders"] = manager.dict()
     # abspath = os.path.abspath(__file__)
     # dname = os.path.dirname(abspath)
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -44,7 +73,8 @@ class ShoonyaApiPy(NorenApi):
         self.feed_opened = False
         self.loggedin = False
         self.list_tokens = []
-        NorenApi.__init__(self, host='https://api.shoonya.com/NorenWClientTP/', websocket='wss://api.shoonya.com/NorenWSTP/')
+        NorenApi.__init__(self, host='https://api.shoonya.com/NorenWClientTP/',
+                          websocket='wss://api.shoonya.com/NorenWSTP/')
     
     def event_handler_feed_update(self,tick_data):
         if self.feed_opened:

@@ -1,11 +1,41 @@
 syntax = "proto3";
 
-// import "google/protobuf/timestamp.proto";
+import "google/protobuf/timestamp.proto";
 
 service Chirper {
   rpc Command(PRequest) returns (PReply) {}
+  rpc BracketOrder(OrderRequest) returns (OrderReply) {}
+  rpc AllOrdersStatus(PRequest) returns (Orders) {}
+}
+enum Status {
+  OPEN = 0;
+  COMPLETE = 1;
+}
+message Orders {
+  repeated Order orders = 1;
+}
+message Order {
+  google.protobuf.Timestamp ordertime = 1;
+  string symbol = 2;
+  Status status = 3;
+  repeated int32 childorders = 4;
 }
 
+enum Type {
+  BUY = 0;
+  SELL = 1;
+}
+
+message OrderRequest {
+  string symbol = 1;
+  Type type = 2;
+  int32 p5Price = 3;
+  int32 p5StopLoss = 4;
+  int32 p5Target = 5;
+}
+message OrderReply {
+  google.protobuf.Timestamp ordertime = 1;
+}
 message PRequest {
   string msg = 1;
 }
