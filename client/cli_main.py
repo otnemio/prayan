@@ -5,7 +5,7 @@ from rich.console import Console
 class Requester():
     
     def __init__(self) -> None:
-        self.stub = priyu_pb2_grpc.ChirperStub(grpc.insecure_channel('192.168.29.6:50051'))
+        self.stub = priyu_pb2_grpc.ChirperStub(grpc.insecure_channel('localhost:50051'))
 
     def command(self, msg):
         req = priyu_pb2.PRequest(msg=msg)
