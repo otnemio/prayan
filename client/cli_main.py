@@ -28,7 +28,7 @@ if __name__ == '__main__':
     con = Console(stderr=False)
     rq = Requester()
     while True:
-        cmd = Prompt.ask("₹")
+        cmd = Prompt.ask("\n₹")
         argLst = cmd.split(sep=' ')
         if argLst[0] == '/q':
             con.print('Bye')

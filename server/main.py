@@ -12,8 +12,11 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
         self.ts = Timestamp()
     
     def Command(self, request, context):
-        log.info("Good, World!")
-        return priyu_pb2.PReply(msg=f"Good")
+        match request.msg:
+            case 'session':
+                return priyu_pb2.PReply(msg=api.susertoken)
+            case _:
+                return priyu_pb2.PReply(msg=f"Good")
     
     def BracketOrder(self, request, context):
         now = datetime.now()
@@ -72,17 +75,20 @@ class ShoonyaApiPy(NorenApi):
     def __init__(self):
         self.feed_opened = False
         self.loggedin = False
+        self.susertoken = None
         self.list_tokens = []
         NorenApi.__init__(self, host='https://api.shoonya.com/NorenWClientTP/',
                           websocket='wss://api.shoonya.com/NorenWSTP/')
     
     def event_handler_feed_update(self,tick_data):
         if self.feed_opened:
-            log.info(f"feed update {tick_data}")
+            # log.info(f"feed update {tick_data}")
+            pass
 
     def event_handler_order_update(self,tick_data):
         if self.feed_opened:
-            log.info(f"order update {tick_data}")
+            # log.info(f"order update {tick_data}")
+            pass
 
     def open_callback(self):
         self.feed_opened = True
@@ -99,6 +105,7 @@ class ShoonyaApiPy(NorenApi):
                 if not ret:
                     log.error("Problemia while trying to log in.")
                 elif ret['stat']=='Ok':
+                    self.susertoken = ret['susertoken']
                     self.loggedin = True
                     self.start_websocket(order_update_callback=self.event_handler_order_update,
                         subscribe_callback=self.event_handler_feed_update, 
@@ -112,7 +119,8 @@ class ShoonyaApiPy(NorenApi):
                                 for exch, token in value.items():
                                     self.list_tokens.append(f"{exch}|{token}")
                     self.subscribe(self.list_tokens,feed_type=2)
-                    log.info(f"Logged in: {self.loggedin}")
+                    
+            log.info(f"Logged in: {self.loggedin}")
         except Exception as e:
                 log.error(e)
 
