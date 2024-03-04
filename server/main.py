@@ -14,7 +14,7 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
     def Command(self, request, context):
         match request.msg:
             case 'session':
-                return priyu_pb2.PReply(msg=api.susertoken)
+                return priyu_pb2.PReply(msg=MD["session"])
             case _:
                 return priyu_pb2.PReply(msg=f"Good")
     
@@ -67,7 +67,7 @@ def shoonya(TOTP):
     api = ShoonyaApiPy()
     api.fulllogin(TOTP)
     while True:
-        log.info("Hello, World!")
+        # log.info("Hello, World!")
         time.sleep(15)
 
 class ShoonyaApiPy(NorenApi):
@@ -75,7 +75,6 @@ class ShoonyaApiPy(NorenApi):
     def __init__(self):
         self.feed_opened = False
         self.loggedin = False
-        self.susertoken = None
         self.list_tokens = []
         NorenApi.__init__(self, host='https://api.shoonya.com/NorenWClientTP/',
                           websocket='wss://api.shoonya.com/NorenWSTP/')
@@ -105,7 +104,7 @@ class ShoonyaApiPy(NorenApi):
                 if not ret:
                     log.error("Problemia while trying to log in.")
                 elif ret['stat']=='Ok':
-                    self.susertoken = ret['susertoken']
+                    MD["session"] = ret['susertoken']
                     self.loggedin = True
                     self.start_websocket(order_update_callback=self.event_handler_order_update,
                         subscribe_callback=self.event_handler_feed_update, 
