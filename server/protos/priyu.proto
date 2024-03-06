@@ -12,13 +12,18 @@ enum Status {
   COMPLETE = 1;
 }
 message Orders {
-  repeated Order orders = 1;
+  repeated Order order = 1;
 }
 message Order {
   google.protobuf.Timestamp ordertime = 1;
   string symbol = 2;
   Status status = 3;
-  repeated int32 childorders = 4;
+  repeated ChildOrder childorder = 4;
+}
+message ChildOrder {
+  string orderno = 1;
+  string status = 2;
+  int32 p5Price = 3;
 }
 
 enum Type {

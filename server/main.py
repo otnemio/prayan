@@ -21,34 +21,43 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
     def BracketOrder(self, request, context):
         now = datetime.now()
         self.ts.FromDatetime(now)
-        # MD["orders"][now] = None
-        MD["orders"][now] = [12345,23456,34567]
+        tradingsymbol=f"{request.symbol}-EQ"
+        MD["orders"][now] = manager.list()
+        MD["details"][now] = request
+        
         return priyu_pb2.OrderReply(ordertime=self.ts)
     
     def AllOrdersStatus(self, request, context):
         try:
             orders = []
             for key, val in MD["orders"].items():
-                log.info(f"{key} {val}")
+                # log.info(f"{key} {val}")
                 self.ts.FromDatetime(key)
                 children = []
                 for child in val:
-                    children.append(child)
-                orders.append(priyu_pb2.Order(ordertime=self.ts,symbol='BEL',status=priyu_pb2.Status.COMPLETE,childorders=children))
-            return priyu_pb2.Orders(orders=orders)
+                    co = priyu_pb2.ChildOrder()
+                    co.orderno = child[0]
+                    co.status = child[1]
+                    co.p5Price = int(20*child[2])
+                    children.append(co)
+                orders.append(priyu_pb2.Order(ordertime=self.ts,
+                                              symbol=MD['details'][key].symbol,
+                                              status=priyu_pb2.Status.COMPLETE,
+                                              childorder=children))
+            return priyu_pb2.Orders(order=orders)
         except Exception as e:
             log.error(e)
 
 def initialize():
-    global log, jobs, api, orders, MD
+    global log, jobs, api, orders,manager, MD
     jobs = []
     log = logging.getLogger("rich")
-    api = None
     manager = mp.Manager()
     MD = manager.dict()
     MD["orders"] = manager.dict()
-    # abspath = os.path.abspath(__file__)
-    # dname = os.path.dirname(abspath)
+    MD["details"] = manager.dict()
+    MD["cprice"] = manager.dict()
+    api = ShoonyaApiPy()
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     FORMAT = "%(message)s"
     logging.basicConfig(
@@ -56,7 +65,7 @@ def initialize():
     )
 
 def serve():
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=5))
     priyu_pb2_grpc.add_ChirperServicer_to_server(Servicer(), server)
     server.add_insecure_port('[::]:50051')
     server.start()
@@ -64,11 +73,55 @@ def serve():
     log.info("Server Started. Listening at [::]:50051")
 
 def shoonya(TOTP):
-    api = ShoonyaApiPy()
     api.fulllogin(TOTP)
     while True:
-        # log.info("Hello, World!")
-        time.sleep(15)
+        for key, val in MD["orders"].items():
+                # log.info(f"{key} {val}")
+                # log.info(f"{MD['details'][key].symbol} {MD['details'][key].p5Price/20}")
+                
+                if MD["orders"][key]:
+                    # log.info(MD["orders"][key])
+                    for o in MD["orders"][key]:
+                        pass
+                        # ret = api.single_order_history(orderno=o)
+                        # log.info(ret)
+                else:
+                    MD["orders"][key].append(('123456','open',221.2))
+                    MD["orders"][key].append(('324242','complete',220))
+                                
+                    # tradingsymbol = f"{MD['details'][key].symbol}-EQ"
+                    # if abs (MD["details"][key].p5Price / 20.0 - MD["cprice"][tradingsymbol])<1.5:
+                    #     price = (MD['details'][key].p5Price)/20.0
+                    #     ord = api.place_order(buy_or_sell='B' if MD['details'][key].type==priyu_pb2.Type.BUY else 'S',
+                    #                                 product_type='I', exchange='NSE',
+                    #                                 tradingsymbol=f"{MD['details'][key].symbol}-EQ",
+                    #                                 quantity=1, discloseqty=0, retention='DAY',
+                    #                                 price_type='SL-LMT', price=price+0.15,
+                    #                                 trigger_price=price+0.05,
+                    #                                 remarks=f'{str(key)}')
+                    #     if ord and ord['stat']=='Ok':
+                    #         MD["orders"][key].append(ord['norenordno'])
+                    #     # stop_loss = (MD['details'][key].p5Price-MD['details'][key].p5StopLoss)/20.0
+                    #     # ord_s = api.place_order(buy_or_sell='S' if MD['details'][key].type==priyu_pb2.Type.BUY else 'B',
+                    #     #                                 product_type='I', exchange='NSE',
+                    #     #                                 tradingsymbol=f"{MD['details'][key].symbol}-EQ",
+                    #     #                                 quantity=1, discloseqty=0, retention='DAY',
+                    #     #                                 price_type='LMT', price=stop_loss-0.2,
+                    #     #                                 trigger_price=stop_loss,
+                    #     #                                 remarks=f'{str(key)}')
+                    #     # if ord_s and ord_s['stat']=='Ok':
+                    #     #         MD["orders"][key].append(ord_s['norenordno'])
+                    #     target = (MD['details'][key].p5Price+MD['details'][key].p5Target)/20.0
+                    #     ord_t = api.place_order(buy_or_sell='S' if MD['details'][key].type==priyu_pb2.Type.BUY else 'B',
+                    #                                     product_type='I', exchange='NSE',
+                    #                                     tradingsymbol=f"{MD['details'][key].symbol}-EQ",
+                    #                                     quantity=1, discloseqty=0, retention='DAY',
+                    #                                     price_type='LMT', price=target-0.2,
+                    #                                     remarks=f'{str(key)}')
+                    #     if ord_t and ord_t['stat']=='Ok':
+                    #             MD["orders"][key].append(ord_t['norenordno'])
+                    
+        time.sleep(5)
 
 class ShoonyaApiPy(NorenApi):
     
@@ -76,12 +129,16 @@ class ShoonyaApiPy(NorenApi):
         self.feed_opened = False
         self.loggedin = False
         self.list_tokens = []
+        self.symbol = {}
         NorenApi.__init__(self, host='https://api.shoonya.com/NorenWClientTP/',
                           websocket='wss://api.shoonya.com/NorenWSTP/')
     
     def event_handler_feed_update(self,tick_data):
         if self.feed_opened:
-            # log.info(f"feed update {tick_data}")
+            if tick_data['t']=='dk':
+                self.symbol[tick_data['tk']]=tick_data['ts']
+            if 'lp' in tick_data:
+                MD["cprice"][self.symbol[tick_data['tk']]]=float(tick_data['lp'])
             pass
 
     def event_handler_order_update(self,tick_data):

@@ -1,6 +1,10 @@
-import readline, grpc, priyu_pb2, priyu_pb2_grpc
+import readline, yaml, os, grpc, priyu_pb2, priyu_pb2_grpc
+from datetime import datetime
 from rich.prompt import Prompt
 from rich.console import Console
+from rich.table import Table
+from rich import box
+from NorenRestApiPy.NorenApi import  NorenApi
 
 class Requester():
     
@@ -10,32 +14,57 @@ class Requester():
     def command(self, msg):
         req = priyu_pb2.PRequest(msg=msg)
         res = self.stub.Command(req)
-        con.print(res.msg)
+        return res.msg
     
-    def bracketorder(self):
-        req = priyu_pb2.OrderRequest(symbol='BEL',type=priyu_pb2.Type.BUY,
-                                     p5Price=240*20,p5StopLoss=1*20,p5Target=2*20)
+    def bracketorder(self, price):
+        req = priyu_pb2.OrderRequest(symbol='BHEL',type=priyu_pb2.Type.BUY,
+                                     p5Price=int(float(price)*20),p5StopLoss=1*20,p5Target=2*20)
         res = self.stub.BracketOrder(req)
         con.print(res.ordertime)
 
     def allordersstatus(self):
         req = priyu_pb2.PRequest(msg='')
         res = self.stub.AllOrdersStatus(req)
-        con.print(res)
+        table = Table(title=f"All Orders", box=box.HORIZONTALS)
 
-if __name__ == '__main__':
-    global con
+        table.add_column("Order Time", justify="center", style="medium_purple3")
+        table.add_column("Symbol", justify="center", style="light_steel_blue1")
+        table.add_column("Price", justify="right", style="cyan")
+        table.add_column("Child Order", justify="right", style="cyan")
+        table.add_column("Status", justify="left", style="cyan")
+
+        for order in res.order:
+            table.add_row(f"{datetime.fromtimestamp(order.ordertime.seconds).strftime('%H:%M:%S')}",
+                        f"{order.symbol:10}",
+                        "","")
+            for child in order.childorder:
+                table.add_row("","","",child.orderno,child.status)
+                # con.print(api.single_order_history(child))
+            
+        con.print(table)
+
+def initialize():
+    global con, rq
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
     con = Console(stderr=False)
     rq = Requester()
+    
+    
+if __name__ == '__main__':
+    initialize()
     while True:
-        cmd = Prompt.ask("\n₹")
-        argLst = cmd.split(sep=' ')
-        if argLst[0] == '/q':
-            con.print('Bye')
-            exit()
-        if argLst[0] == '/s':
-            rq.command("session")
-        if argLst[0] == '/os':
-            rq.allordersstatus()
-        if argLst[0] == '/bo':
-            rq.bracketorder()
+        cmd = Prompt.ask("₹")
+        match cmd.split():
+            case ['/q']:
+                con.print('Bye')
+                exit()
+            case ['/os']:
+                rq.allordersstatus()
+            case ['/bo',price]:
+                rq.bracketorder(price)
+            case ['/no', ordernum ]:
+                if loggedin:
+                    con.print(api.single_order_history(str(ordernum)))
+            case _:
+                # con.print("Sorry")
+                pass
