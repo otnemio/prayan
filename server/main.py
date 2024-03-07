@@ -13,8 +13,10 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
         self.ts = Timestamp()
     
     def Command(self, request, context):
+        global df_orders
         match request.msg:
             case 'session':
+                log.info(df_orders)
                 return priyu_pb2.PReply(msg=MD["session"])
             case _:
                 return priyu_pb2.PReply(msg=f"Good")
@@ -50,11 +52,12 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
             log.error(e)
 
 def initialize():
-    global log, jobs, api, orders, MD
+    global log, jobs, api, orders, MD, df_orders
     jobs = []
     log = logging.getLogger("rich")
     
     MD = {'orders':{},'details':{},'cprice':{}}
+    df_orders = None
     api = ShoonyaApiPy()
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     FORMAT = "%(message)s"
@@ -78,12 +81,15 @@ def store_orders_data(data):
             df['symbol'].append(row['tsym'])
             df['price'].append(row['prc'])
             df['status'].append(row['status'])
-    df_orders = pd.DataFrame(df)
-    log.info(df_orders)
+    log.info(df)
+    return pd.DataFrame(df)
+    
 def shoonya(TOTP):
+    global df_orders
     api.fulllogin(TOTP)
     ret = api.get_order_book()
-    store_orders_data(ret)
+    df_orders = store_orders_data(ret)
+    log.info(df_orders)
     while True:
         for key, val in MD["orders"].items():
                 # log.info(f"{key} {val}")
@@ -155,7 +161,6 @@ class ShoonyaApiPy(NorenApi):
     def event_handler_order_update(self,tick_data):
         if self.feed_opened:
             log.info(f"order update {tick_data}")
-            NS.df_orders = [1]
             pass
 
     def open_callback(self):
