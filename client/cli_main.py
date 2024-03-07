@@ -60,11 +60,10 @@ if __name__ == '__main__':
                 exit()
             case ['/os']:
                 rq.allordersstatus()
+            case ['/o']:
+                rq.command('session')
             case ['/bo',price]:
                 rq.bracketorder(price)
-            case ['/no', ordernum ]:
-                if loggedin:
-                    con.print(api.single_order_history(str(ordernum)))
             case _:
                 # con.print("Sorry")
                 pass

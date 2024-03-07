@@ -1,5 +1,6 @@
 import os, yaml, logging, time, grpc, priyu_pb2, priyu_pb2_grpc
-import multiprocessing as mp
+import pandas as pd
+import threading
 from datetime import datetime
 from google.protobuf.timestamp_pb2 import Timestamp
 from rich.logging import RichHandler
@@ -22,7 +23,7 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
         now = datetime.now()
         self.ts.FromDatetime(now)
         tradingsymbol=f"{request.symbol}-EQ"
-        MD["orders"][now] = manager.list()
+        MD["orders"][now] = []
         MD["details"][now] = request
         
         return priyu_pb2.OrderReply(ordertime=self.ts)
@@ -49,14 +50,11 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
             log.error(e)
 
 def initialize():
-    global log, jobs, api, orders,manager, MD
+    global log, jobs, api, orders, MD
     jobs = []
     log = logging.getLogger("rich")
-    manager = mp.Manager()
-    MD = manager.dict()
-    MD["orders"] = manager.dict()
-    MD["details"] = manager.dict()
-    MD["cprice"] = manager.dict()
+    
+    MD = {'orders':{},'details':{},'cprice':{}}
     api = ShoonyaApiPy()
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     FORMAT = "%(message)s"
@@ -72,8 +70,20 @@ def serve():
     server.wait_for_termination()
     log.info("Server Started. Listening at [::]:50051")
 
+def store_orders_data(data):
+    df = {'orderno':[],'symbol':[],'price':[],'status':[]}
+    for row in data:
+        if row['stat']=='Ok':
+            df['orderno'].append(row['norenordno'])
+            df['symbol'].append(row['tsym'])
+            df['price'].append(row['prc'])
+            df['status'].append(row['status'])
+    df_orders = pd.DataFrame(df)
+    log.info(df_orders)
 def shoonya(TOTP):
     api.fulllogin(TOTP)
+    ret = api.get_order_book()
+    store_orders_data(ret)
     while True:
         for key, val in MD["orders"].items():
                 # log.info(f"{key} {val}")
@@ -86,6 +96,7 @@ def shoonya(TOTP):
                         # ret = api.single_order_history(orderno=o)
                         # log.info(ret)
                 else:
+                    
                     MD["orders"][key].append(('123456','open',221.2))
                     MD["orders"][key].append(('324242','complete',220))
                                 
@@ -143,7 +154,8 @@ class ShoonyaApiPy(NorenApi):
 
     def event_handler_order_update(self,tick_data):
         if self.feed_opened:
-            # log.info(f"order update {tick_data}")
+            log.info(f"order update {tick_data}")
+            NS.df_orders = [1]
             pass
 
     def open_callback(self):
@@ -183,10 +195,9 @@ class ShoonyaApiPy(NorenApi):
 if __name__ == '__main__':
     initialize()
     PIN = input("Auth Code ")
-    with mp.Pool() as pool:
-        jobs.append(pool.apply_async(shoonya, [PIN]))
-        jobs.append(pool.apply_async(serve, []))
-        # jobs.append(pool.apply_async(analyser, []))
-        
-        while True:
-            pass
+    t1 = threading.Thread(target=shoonya,args=(PIN,))
+    t2 = threading.Thread(target=serve,args=())
+    t1.start()
+    t2.start()
+    t1.join()
+    t2.join()
