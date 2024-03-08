@@ -22,6 +22,20 @@ class Requester():
         res = self.stub.BracketOrder(req)
         con.print(res.ordertime)
 
+    def childordersstatus(self):
+        req = priyu_pb2.PRequest(msg='')
+        res = self.stub.ChildOrdersStatus(req)
+        table = Table(title=f"Child Orders", box=box.HORIZONTALS)
+
+        table.add_column("Order Number", justify="center", style="medium_purple3")
+        table.add_column("Status", justify="center", style="light_steel_blue1")
+        table.add_column("Price", justify="right", style="cyan")
+
+        for childorder in res.childorder:
+            table.add_row(f"{childorder.orderno:15}",f"{childorder.status}",f"{childorder.p5Price/20:>8.2f}")
+        
+        con.print(table)
+
     def allordersstatus(self):
         req = priyu_pb2.PRequest(msg='')
         res = self.stub.AllOrdersStatus(req)
@@ -60,6 +74,8 @@ if __name__ == '__main__':
                 exit()
             case ['/os']:
                 rq.allordersstatus()
+            case ['/cs']:
+                rq.childordersstatus()
             case ['/o']:
                 rq.command('session')
             case ['/bo',price]:

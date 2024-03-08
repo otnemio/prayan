@@ -13,10 +13,8 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
         self.ts = Timestamp()
     
     def Command(self, request, context):
-        global df_orders
         match request.msg:
             case 'session':
-                log.info(df_orders)
                 return priyu_pb2.PReply(msg=MD["session"])
             case _:
                 return priyu_pb2.PReply(msg=f"Good")
@@ -29,7 +27,13 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
         MD["details"][now] = request
         
         return priyu_pb2.OrderReply(ordertime=self.ts)
-    
+    def ChildOrdersStatus(self, request, context):
+        global df_orders
+        childorders = []
+        
+        for index, row in df_orders.iterrows():
+            childorders.append(priyu_pb2.ChildOrder(orderno=row['orderno'],status=row['status'],p5Price=int(20*float(row['price']))))
+        return priyu_pb2.ChildOrders(childorder=childorders)
     def AllOrdersStatus(self, request, context):
         try:
             orders = []
