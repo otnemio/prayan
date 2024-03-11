@@ -6,6 +6,22 @@ service Chirper {
   rpc Command(PRequest) returns (PReply) {}
   rpc BracketOrder(OrderRequest) returns (OrderReply) {}
   rpc AllOrdersStatus(PRequest) returns (Orders) {}
+  rpc LiveData(SRequest) returns (OHLCVs) {}
+}
+message SRequest {
+  string symbol = 1;
+  string exchange = 2;
+}
+message OHLCVs {
+  repeated OHLCV ohlcv = 1;
+}
+message OHLCV {
+  google.protobuf.Timestamp time = 1;
+  int32 pOpen = 2;
+  int32 pHigh = 3;
+  int32 pLow = 4;
+  int32 pClose = 5;
+  int32 volume = 6;
 }
 enum Status {
   OPEN = 0;

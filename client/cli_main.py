@@ -35,6 +35,18 @@ class Requester():
             table.add_row(f"{childorder.orderno:15}",f"{childorder.status}",f"{childorder.p5Price/20:>8.2f}")
         
         con.print(table)
+    def livedata(self):
+        req = priyu_pb2.SRequest(symbol='BEL',exchange='NSE')
+        res = self.stub.LiveData(req)
+        table = Table(title=f"Live Data (BEL)", box=box.HORIZONTALS)
+
+        table.add_column("Time", justify="center", style="medium_purple3")
+        table.add_column("Open", justify="right", style="light_steel_blue1")
+        table.add_column("High", justify="right", style="light_steel_blue1")
+        table.add_column("Low", justify="right", style="light_steel_blue1")
+        table.add_column("Close", justify="right", style="light_steel_blue1")
+        table.add_column("Volume", justify="right", style="cyan")
+        
 
     def allordersstatus(self):
         req = priyu_pb2.PRequest(msg='')
@@ -76,10 +88,13 @@ if __name__ == '__main__':
                 rq.allordersstatus()
             case ['/cs']:
                 rq.childordersstatus()
+            case ['/l']:
+                rq.livedata()
             case ['/o']:
                 rq.command('session')
             case ['/bo',price]:
                 rq.bracketorder(price)
+
             case _:
                 # con.print("Sorry")
                 pass

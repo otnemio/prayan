@@ -1,4 +1,4 @@
-import os, yaml, logging, time, grpc, priyu_pb2, priyu_pb2_grpc
+import sqlite3, os, yaml, logging, time, grpc, priyu_pb2, priyu_pb2_grpc
 import pandas as pd
 import threading
 from datetime import datetime
@@ -7,6 +7,19 @@ from rich.logging import RichHandler
 from concurrent import futures
 from NorenRestApiPy.NorenApi import  NorenApi
 
+class SharedMethods():
+    def rp(rs):
+        return int(100*float(rs))
+
+    def pr(p):
+        return float(p)/100
+
+    def m0915(h,m):
+        return (h-9)*60+m-15
+
+    def tm0915(m):
+        return '{:02d}:{:02d}'.format(*divmod(m+60*9+15, 60))
+    
 class Servicer(priyu_pb2_grpc.ChirperServicer):
     def __init__(self) -> None:
         super().__init__()
@@ -18,7 +31,17 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
                 return priyu_pb2.PReply(msg=MD["session"])
             case _:
                 return priyu_pb2.PReply(msg=f"Good")
-    
+    def LiveData(self, request, context):
+        tradingsymbol=f"{request.symbol}-EQ" if request.exchange=="NSE" else f"{request.symbol}"
+        tohlcv = []
+        if MD['liveTableExists']:
+            c =conn_mem.cursor()
+            c.execute('''SELECT * FROM live WHERE tradingsymbol = ?''',(tradingsymbol,))
+            rows = c.fetchall()
+            for row in rows:
+                print(row)
+        return priyu_pb2.OHLCVs(ohlcv=tohlcv)
+            
     def BracketOrder(self, request, context):
         now = datetime.now()
         self.ts.FromDatetime(now)
@@ -60,7 +83,8 @@ def initialize():
     jobs = []
     log = logging.getLogger("rich")
     
-    MD = {'orders':{},'details':{},'cprice':{}}
+    MD = {'orders':{},'details':{},'cprice':{},'tradingsymbol':{},'liveTableExists':False, 'infoTableExists':False, 'loggedin':False,
+          'listtokens':[],'feedopened':False}
     df_orders = None
     api = ShoonyaApiPy()
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -147,43 +171,85 @@ def shoonya(TOTP):
 class ShoonyaApiPy(NorenApi):
     
     def __init__(self):
-        self.feed_opened = False
-        self.loggedin = False
-        self.list_tokens = []
-        self.symbol = {}
         NorenApi.__init__(self, host='https://api.shoonya.com/NorenWClientTP/',
                           websocket='wss://api.shoonya.com/NorenWSTP/')
     
     def event_handler_feed_update(self,tick_data):
-        if self.feed_opened:
+        if MD['feedopened']:
+            c = conn_mem.cursor()
             if tick_data['t']=='dk':
-                self.symbol[tick_data['tk']]=tick_data['ts']
-            if 'lp' in tick_data:
-                MD["cprice"][self.symbol[tick_data['tk']]]=float(tick_data['lp'])
-            pass
+                MD['tradingsymbol'][tick_data['tk']]=tick_data['ts']
+                c.execute('''CREATE TABLE IF NOT EXISTS info (
+                            tradingsymbol TEXT,
+                            ucp INTEGER,
+                            lcp INTEGER,
+                            PRIMARY KEY (tradingsymbol)
+                                )''')
+                c.execute('''INSERT OR IGNORE INTO info (tradingsymbol, ucp, lcp) VALUES (?,?,?)''',
+                        (tick_data['ts'],SharedMethods.rp(tick_data['uc']),SharedMethods.rp(tick_data['lc'])))
+                conn_mem.commit()
+                MD['infoTableExists'] = True
+            if tick_data['t']=='df' and not MD['liveTableExists'] and MD['infoTableExists']:    
+                c.execute('''CREATE TABLE IF NOT EXISTS live (
+                        tradingsymbol TEXT,
+                        minute INTEGER,
+                        openp INTEGER,
+                        highp INTEGER,
+                        lowp INTEGER,
+                        closep INTEGER,
+                        volume INTEGER,
+                        PRIMARY KEY (tradingsymbol,minute)
+                        )''')
+                conn_mem.commit()
+                MD['liveTableExists'] = True
+            if MD['liveTableExists'] and MD['infoTableExists'] and 'ft' in tick_data:    
+                tm = time.localtime(int(tick_data['ft']))
+                minute = SharedMethods.m0915(tm.tm_hour,tm.tm_min)
+                
+                c.execute('''SELECT * FROM live WHERE tradingsymbol = ? AND minute = ?''',(MD['tradingsymbol'][tick_data['tk']],minute,))
+                row = c.fetchone()
+                
+                if 'lp' in tick_data:
+                    MD["cprice"][MD['tradingsymbol'][tick_data['tk']]]=float(tick_data['lp'])
+                    if not row:
+                        c.execute('''INSERT OR IGNORE INTO live (tradingsymbol, minute, openp, highp, lowp, closep, volume) VALUES (?,?,?,?,?,?,?) ''',
+                            (MD['tradingsymbol'][tick_data['tk']],minute,
+                             SharedMethods.rp(tick_data['lp']),
+                             SharedMethods.rp(tick_data['lp']),
+                             SharedMethods.rp(tick_data['lp']),
+                             SharedMethods.rp(tick_data['lp']),
+                             0))
+                    else:        
+                        nhighp = max(row[3],SharedMethods.rp(tick_data['lp']))
+                        nlowp = min(row[4],SharedMethods.rp(tick_data['lp']))
+                        nclosep = SharedMethods.rp(tick_data['lp'])
+                        c.execute('''UPDATE live SET highp = ?, lowp = ?, closep =?, volume =? WHERE tradingsymbol = ? AND minute =?''',
+                        (nhighp,nlowp,nclosep,1,MD['tradingsymbol'][tick_data['tk']],minute))
+                    conn_mem.commit()
 
     def event_handler_order_update(self,tick_data):
-        if self.feed_opened:
+        if MD['feedopened']:
             log.info(f"order update {tick_data}")
-            pass
 
     def open_callback(self):
-        self.feed_opened = True
+        global conn_mem
+        MD['feedopened'] = True
+        conn_mem = sqlite3.connect(':memory:',check_same_thread=False)
 
     def close_callback(self):
-        self.feed_opened = False
+        MD['feedopened'] = False
 
     def fulllogin(self,TOTP):
         try:
             with open("cred.yaml","r") as stream:
                 cred = yaml.safe_load(stream)
-            if not self.loggedin:
+            if not MD['loggedin']:
                 ret = self.login(cred['user'],cred['pwd'],TOTP,cred['vc'],cred['apikey'],cred['imei'])
                 if not ret:
                     log.error("Problemia while trying to log in.")
                 elif ret['stat']=='Ok':
                     MD["session"] = ret['susertoken']
-                    self.loggedin = True
+                    MD['loggedin'] = True
                     self.start_websocket(order_update_callback=self.event_handler_order_update,
                         subscribe_callback=self.event_handler_feed_update, 
                         socket_open_callback=self.open_callback,
@@ -194,10 +260,10 @@ class ShoonyaApiPy(NorenApi):
                         for instrument in instruments:
                             for key, value in instrument.items():
                                 for exch, token in value.items():
-                                    self.list_tokens.append(f"{exch}|{token}")
-                    self.subscribe(self.list_tokens,feed_type=2)
+                                    MD['listtokens'].append(f"{exch}|{token}")
+                    self.subscribe(MD['listtokens'],feed_type=2)
                     
-            log.info(f"Logged in: {self.loggedin}")
+            log.info(f"Logged in: {MD['loggedin']}")
         except Exception as e:
                 log.error(e)
 
