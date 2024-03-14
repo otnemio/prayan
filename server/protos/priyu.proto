@@ -7,6 +7,7 @@ service Chirper {
   rpc BracketOrder(OrderRequest) returns (OrderReply) {}
   rpc AllOrdersStatus(PRequest) returns (Orders) {}
   rpc LiveData(SRequest) returns (OHLCVs) {}
+  rpc ChildOrdersStatus(PRequest) returns (ChildOrders) {}
 }
 message SRequest {
   string symbol = 1;
@@ -36,6 +37,10 @@ message Order {
   Status status = 3;
   repeated ChildOrder childorder = 4;
 }
+message ChildOrders {
+  repeated ChildOrder childorder = 1;
+}
+
 message ChildOrder {
   string orderno = 1;
   string status = 2;

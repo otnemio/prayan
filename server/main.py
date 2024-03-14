@@ -53,7 +53,6 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
     def ChildOrdersStatus(self, request, context):
         global df_orders
         childorders = []
-        
         for index, row in df_orders.iterrows():
             childorders.append(priyu_pb2.ChildOrder(orderno=row['orderno'],status=row['status'],p5Price=int(20*float(row['price']))))
         return priyu_pb2.ChildOrders(childorder=childorders)
@@ -109,7 +108,7 @@ def store_orders_data(data):
             df['symbol'].append(row['tsym'])
             df['price'].append(row['prc'])
             df['status'].append(row['status'])
-    log.info(df)
+    # log.info(df)
     return pd.DataFrame(df)
     
 def shoonya(TOTP):
