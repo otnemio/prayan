@@ -2,5 +2,6 @@ priyu_pb2_grpc.py
 priyu_pb2.py
 cred.yaml
 dashboard/app.glade~
+collector/bhav_eq_database.db
 test/*
 */__pycache__/*
