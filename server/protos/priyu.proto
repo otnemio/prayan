@@ -43,8 +43,11 @@ message ChildOrders {
 
 message ChildOrder {
   string orderno = 1;
-  string status = 2;
-  int32 p5Price = 3;
+  string tradingsymbol = 2;
+  string status = 3;
+  int32 quantity =4;
+  int32 p5Price = 5;
+  Type type =6;
 }
 
 enum Type {

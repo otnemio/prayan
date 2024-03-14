@@ -54,7 +54,12 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
         global df_orders
         childorders = []
         for index, row in df_orders.iterrows():
-            childorders.append(priyu_pb2.ChildOrder(orderno=row['orderno'],status=row['status'],p5Price=int(20*float(row['price']))))
+            childorders.append(priyu_pb2.ChildOrder(orderno=row['orderno'],
+                                                    tradingsymbol=row['tradingsymbol'],
+                                                    status=row['status'],
+                                                    type=priyu_pb2.Type.BUY if row['type']=='B' else priyu_pb2.Type.SELL,
+                                                    quantity=int(row['quantity']),
+                                                    p5Price=int(20*float(row['price']))))
         return priyu_pb2.ChildOrders(childorder=childorders)
     def AllOrdersStatus(self, request, context):
         try:
@@ -101,13 +106,15 @@ def serve():
     log.info("Server Started. Listening at [::]:50051")
 
 def store_orders_data(data):
-    df = {'orderno':[],'symbol':[],'price':[],'status':[]}
+    df = {'orderno':[],'tradingsymbol':[],'quantity':[],'price':[],'status':[],'type':[]}
     for row in data:
         if row['stat']=='Ok':
             df['orderno'].append(row['norenordno'])
-            df['symbol'].append(row['tsym'])
+            df['tradingsymbol'].append(row['tsym'])
+            df['quantity'].append(row['qty'])
             df['price'].append(row['prc'])
             df['status'].append(row['status'])
+            df['type'].append(row['trantype'])
     # log.info(df)
     return pd.DataFrame(df)
     

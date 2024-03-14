@@ -28,11 +28,16 @@ class Requester():
         table = Table(title=f"Child Orders", box=box.HORIZONTALS)
 
         table.add_column("Order Number", justify="center", style="medium_purple3")
+        table.add_column("Trading Symbol", justify="center", style="light_steel_blue1")
+        table.add_column("Type", justify="center", style="light_steel_blue1")
         table.add_column("Status", justify="center", style="light_steel_blue1")
+        table.add_column("Quantity", justify="right", style="cyan")
         table.add_column("Price", justify="right", style="cyan")
 
         for childorder in res.childorder:
-            table.add_row(f"{childorder.orderno:15}",f"{childorder.status}",f"{childorder.p5Price/20:>8.2f}")
+            table.add_row(f"{childorder.orderno:15}",f"{childorder.tradingsymbol:15}",f"{priyu_pb2.Type.Name(childorder.type)}",
+                          f"{childorder.status}",f"{childorder.quantity}",
+                          f"{childorder.p5Price/20:>8.2f}")
         
         con.print(table)
     def livedata(self):
