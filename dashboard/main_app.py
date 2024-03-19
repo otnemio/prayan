@@ -74,8 +74,7 @@ class Handler():
             srlMatPlot1.add(canvas)
             srlMatPlot1.show_all()
         self.axH.cla()
-        mpf.plot(df_p, ax=self.axH, returnfig=True)
-        
+        mpf.plot(df_p, ax=self.axH, returnfig=True, xrotation=0)
         self.canvasH.draw()
         self.canvasH.flush_events()
         
@@ -105,8 +104,7 @@ class Handler():
             srlMatPlot2.add(canvas)
             srlMatPlot2.show_all()
         self.axC.cla()
-        mpf.plot(df_p, ax=self.axC, returnfig=True)
-        
+        mpf.plot(df_p, ax=self.axC, returnfig=True, xrotation=0)
         self.canvasC.draw()
         self.canvasC.flush_events()
 class App(Gtk.Application):
