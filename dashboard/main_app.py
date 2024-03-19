@@ -1,5 +1,6 @@
 import gi, sqlite3, os, sys, yaml, grpc, priyu_pb2, priyu_pb2_grpc
 import pandas as pd
+import matplotlib.pyplot as plt
 import mplfinance as mpf
 from datetime import datetime, timezone
 from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
@@ -58,23 +59,26 @@ class Handler():
             
         df_p = pd.DataFrame(df, index=df['date'])
         
-        fig, ax = mpf.plot(df_p, figratio=(8, 5), returnfig=True)
         
-        
-        canvas = FigureCanvas(fig)  # a Gtk.DrawingArea
         # canvas.mpl_connect('button_press_event', self._on_click)
         # canvas.mpl_connect('motion_notify_event', self._on_motion)
         # canvas.mpl_connect('pick_event', self._on_pick)
         # canvas.set_size_request(800, 600)
-        for child in srlMatPlot1.get_children():
-            srlMatPlot1.remove(child)
+        # for child in srlMatPlot1.get_children():
+        #     srlMatPlot1.remove(child)
         if not srlMatPlot1.get_children():
+            fig, ax = plt.subplots()
+            canvas = FigureCanvas(fig)  # a Gtk.DrawingArea
+            self.axH = ax
+            self.canvasH = canvas
             srlMatPlot1.add(canvas)
-        # canvas.draw()
-        self.figure = fig
-        self.ax = ax
-        srlMatPlot1.show_all()
-    
+            srlMatPlot1.show_all()
+        self.axH.cla()
+        mpf.plot(df_p, ax=self.axH, returnfig=True)
+        
+        self.canvasH.draw()
+        self.canvasH.flush_events()
+        
     def display_current_chart(self, symbol):
         srlMatPlot2 = self.b('scrlCurr1')
         req = priyu_pb2.SRequest(symbol=symbol,exchange='NSE')
@@ -89,22 +93,22 @@ class Handler():
             df['volume'].append(row.volume)
         df_p = pd.DataFrame(df, index=df['time'])
         
-        fig, ax = mpf.plot(df_p, figratio=(8, 5), returnfig=True)
-        
-        
-        canvas = FigureCanvas(fig)  # a Gtk.DrawingArea
         # canvas.mpl_connect('button_press_event', self._on_click)
         # canvas.mpl_connect('motion_notify_event', self._on_motion)
         # canvas.mpl_connect('pick_event', self._on_pick)
         # canvas.set_size_request(800, 600)
-        for child in srlMatPlot2.get_children():
-            srlMatPlot2.remove(child)
         if not srlMatPlot2.get_children():
+            fig, ax = plt.subplots()
+            canvas = FigureCanvas(fig)  # a Gtk.DrawingArea
+            self.axC = ax
+            self.canvasC = canvas
             srlMatPlot2.add(canvas)
-        # canvas.draw()
-        self.figure = fig
-        self.ax = ax
-        srlMatPlot2.show_all()
+            srlMatPlot2.show_all()
+        self.axC.cla()
+        mpf.plot(df_p, ax=self.axC, returnfig=True)
+        
+        self.canvasC.draw()
+        self.canvasC.flush_events()
 class App(Gtk.Application):
     __gtype_name__ = 'DashBoard'
 
@@ -118,9 +122,6 @@ class App(Gtk.Application):
         self.builder.add_from_file("app.glade")
         self.builder.connect_signals(Handler())
 
-        
-
-            
     def on_activate(self, app):
         self.window = self.builder.get_object("appwindow1")
         self.window.maximize()
