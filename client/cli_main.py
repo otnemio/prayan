@@ -51,6 +51,7 @@ class Requester():
         table.add_column("Low", justify="right", style="light_steel_blue1")
         table.add_column("Close", justify="right", style="light_steel_blue1")
         table.add_column("Volume", justify="right", style="cyan")
+        con.print(res)
         
 
     def allordersstatus(self):

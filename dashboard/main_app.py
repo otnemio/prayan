@@ -1,14 +1,16 @@
-import gi, sqlite3, os, sys, yaml
+import gi, sqlite3, os, sys, yaml, grpc, priyu_pb2, priyu_pb2_grpc
 import pandas as pd
 import mplfinance as mpf
-from datetime import datetime
+from datetime import datetime, timezone
 from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk, GLib
+from sharedmethods import SharedMethods
 
 class Handler():
     def __init__(self):
         global builder, conn
+        self.stub = priyu_pb2_grpc.ChirperStub(grpc.insecure_channel('localhost:50051'))
         conn = sqlite3.connect('../collector/bhav_eq_database.db',check_same_thread=False)
         self.fetch_instruments()
     def b(self,id):
@@ -74,9 +76,35 @@ class Handler():
         srlMatPlot1.show_all()
     
     def display_current_chart(self, symbol):
-        pass
-
-
+        srlMatPlot2 = self.b('scrlCurr1')
+        req = priyu_pb2.SRequest(symbol=symbol,exchange='NSE')
+        res = self.stub.LiveData(req)
+        df={'time':[],'open':[],'close':[],'high':[],'low':[],'volume':[]}
+        for row in res.ohlcv:
+            df['time'].append(datetime.fromtimestamp(row.time.seconds,tz=timezone.utc))
+            df['open'].append(SharedMethods.pr(row.pOpen))
+            df['high'].append(SharedMethods.pr(row.pHigh))
+            df['low'].append(SharedMethods.pr(row.pLow))
+            df['close'].append(SharedMethods.pr(row.pClose))
+            df['volume'].append(row.volume)
+        df_p = pd.DataFrame(df, index=df['time'])
+        
+        fig, ax = mpf.plot(df_p, figratio=(8, 5), returnfig=True)
+        
+        
+        canvas = FigureCanvas(fig)  # a Gtk.DrawingArea
+        # canvas.mpl_connect('button_press_event', self._on_click)
+        # canvas.mpl_connect('motion_notify_event', self._on_motion)
+        # canvas.mpl_connect('pick_event', self._on_pick)
+        # canvas.set_size_request(800, 600)
+        for child in srlMatPlot2.get_children():
+            srlMatPlot2.remove(child)
+        if not srlMatPlot2.get_children():
+            srlMatPlot2.add(canvas)
+        # canvas.draw()
+        self.figure = fig
+        self.ax = ax
+        srlMatPlot2.show_all()
 class App(Gtk.Application):
     __gtype_name__ = 'DashBoard'
 
