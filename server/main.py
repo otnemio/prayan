@@ -6,19 +6,8 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from rich.logging import RichHandler
 from concurrent import futures
 from NorenRestApiPy.NorenApi import  NorenApi
+from sharedmethods import SharedMethods
 
-class SharedMethods():
-    def rp(rs):
-        return int(100*float(rs))
-
-    def pr(p):
-        return float(p)/100
-
-    def m0915(h,m):
-        return (h-9)*60+m-15
-
-    def tm0915(m):
-        return '{:02d}:{:02d}'.format(*divmod(m+60*9+15, 60))
     
 class Servicer(priyu_pb2_grpc.ChirperServicer):
     def __init__(self) -> None:
@@ -39,7 +28,13 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
             c.execute('''SELECT * FROM live WHERE tradingsymbol = ?''',(tradingsymbol,))
             rows = c.fetchall()
             for row in rows:
-                print(row)
+                self.ts.FromDatetime(SharedMethods.tm0915(row[1]))
+                tohlcv.append(priyu_pb2.OHLCV(time=self.ts,
+                                              pOpen=row[2],
+                                              pHigh=row[3],
+                                              pClose=row[4],
+                                              pLow=row[5],
+                                              volume=row[6]))
         return priyu_pb2.OHLCVs(ohlcv=tohlcv)
             
     def BracketOrder(self, request, context):
@@ -51,9 +46,8 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
         
         return priyu_pb2.OrderReply(ordertime=self.ts)
     def ChildOrdersStatus(self, request, context):
-        global df_orders
         childorders = []
-        for index, row in df_orders.iterrows():
+        for index, row in MD['df_orders'].iterrows():
             childorders.append(priyu_pb2.ChildOrder(orderno=row['orderno'],
                                                     tradingsymbol=row['tradingsymbol'],
                                                     status=row['status'],
@@ -83,13 +77,12 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
             log.error(e)
 
 def initialize():
-    global log, jobs, api, orders, MD, df_orders
+    global log, jobs, api, orders, MD
     jobs = []
     log = logging.getLogger("rich")
     
     MD = {'orders':{},'details':{},'cprice':{},'tradingsymbol':{},'liveTableExists':False, 'infoTableExists':False, 'loggedin':False,
-          'listtokens':[],'feedopened':False}
-    df_orders = None
+          'listtokens':[],'feedopened':False,'df_orders':None, 'df_holdings':None,'df_positions':None}
     api = ShoonyaApiPy()
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     FORMAT = "%(message)s"
@@ -117,13 +110,43 @@ def store_orders_data(data):
             df['type'].append(row['trantype'])
     # log.info(df)
     return pd.DataFrame(df)
-    
+
+def store_positions_data(data):
+    df = {'tradingsymbol':[],'product':[],'quantity':[]}
+    for row in data:
+        if row['stat']=='Ok':
+            df['tradingsymbol'].append(row['tsym'])
+            df['product'].append(row['s_prdt_ali'])
+            df['quantity'].append(int(row['netqty']))
+    return pd.DataFrame(df)
+
+def store_holdings_data(data):
+    df = {'tradingsymbol':[],'product':[],'quantity':[]}
+    for row in data:
+        if row['stat']=='Ok':
+            df['tradingsymbol'].append(row['exch_tsym'][0]['tsym'])
+            df['product'].append(row['s_prdt_ali'])
+            df['quantity'].append(max(int(row['dpqty']),int(row['npoadqty'])))
+    return pd.DataFrame(df)
+
 def shoonya(TOTP):
-    global df_orders
     api.fulllogin(TOTP)
-    ret = api.get_order_book()
-    df_orders = store_orders_data(ret)
-    log.info(df_orders)
+    
+    reth = api.get_holdings()
+    if reth:
+        MD['df_holdings'] = store_holdings_data(reth)
+        log.info(MD['df_holdings'])
+    
+    retp = api.get_positions()
+    if retp:
+        MD['df_positions'] = store_positions_data(retp)
+        log.info(MD['df_positions'])
+    
+    reto = api.get_order_book()
+    if reto:
+        MD['df_orders'] = store_orders_data(reto)
+        log.info(MD['df_orders'])
+    
     while True:
         for key, val in MD["orders"].items():
                 # log.info(f"{key} {val}")
@@ -208,6 +231,25 @@ class ShoonyaApiPy(NorenApi):
                         )''')
                 conn_mem.commit()
                 MD['liveTableExists'] = True
+                lastBusDay = datetime.today()
+                lastBusDay = lastBusDay.replace(hour=0, minute=0, second=0, microsecond=0)
+                
+                for tkn in MD['listtokens']:
+                    exchange = tkn.split('|')[0]
+                    token = tkn.split('|')[1]
+                    ret = api.get_time_price_series(exchange=exchange, token=token, starttime=lastBusDay.timestamp())
+                    for row in ret:
+                        if row['stat']=='Ok':
+                            tm = datetime.strptime(row['time'],'%d-%m-%Y %H:%M:%S')
+                            minute = SharedMethods.m0915(tm.hour,tm.minute)
+                            c.execute('''INSERT OR IGNORE INTO live (tradingsymbol, minute, openp, highp, lowp, closep, volume) VALUES (?,?,?,?,?,?,?) ''',
+                                (MD['tradingsymbol'][token],minute,
+                                SharedMethods.rp(row['into']),
+                                SharedMethods.rp(row['inth']),
+                                SharedMethods.rp(row['intl']),
+                                SharedMethods.rp(row['intc']),
+                                int(row['intv'])))
+                conn_mem.commit()
             if MD['liveTableExists'] and MD['infoTableExists'] and 'ft' in tick_data:    
                 tm = time.localtime(int(tick_data['ft']))
                 minute = SharedMethods.m0915(tm.tm_hour,tm.tm_min)
@@ -235,7 +277,20 @@ class ShoonyaApiPy(NorenApi):
 
     def event_handler_order_update(self,tick_data):
         if MD['feedopened']:
-            log.info(f"order update {tick_data}")
+            # log.info(f"order update {tick_data}")
+            if MD['df_orders']['orderno'].str.contains(tick_data['norenordno']).any():
+                MD['df_orders'].loc[MD['df_orders']['orderno']==tick_data['norenordno'],'status']=tick_data['status']
+            else:
+                MD['df_orders'].loc[MD['df_orders'].index.max()+1]=[tick_data['norenordno'],
+                                                        tick_data['tsym'],
+                                                        tick_data['qty'],
+                                                        tick_data['prc'],
+                                                        tick_data['status'],
+                                                        tick_data['trantype']]
+            if tick_data['status']=='COMPLETE':
+                retp = api.get_positions()
+                if retp:
+                    MD['df_positions'] = store_positions_data(retp)
 
     def open_callback(self):
         global conn_mem
