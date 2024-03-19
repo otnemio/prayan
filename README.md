@@ -1,1 +1,3 @@
-# prayan
+# Prayan
+
+open-source trading platform
