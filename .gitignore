@@ -4,4 +4,5 @@ cred.yaml
 app.glade~
 bhav_eq_database.db
 test/*
+analyser/*
 */__pycache__/*
