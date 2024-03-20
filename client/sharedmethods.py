@@ -12,6 +12,6 @@ class SharedMethods():
 
     def tm0915(m):
         tm = datetime.strptime('{:02d}:{:02d}'.format(*divmod(m+60*9+14, 60)),'%H:%M')
-        now = datetime.today()
+        now = datetime.now()
         tme = now.replace(hour=tm.hour, minute=tm.minute, second=0, microsecond=0)
         return tme

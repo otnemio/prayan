@@ -1,5 +1,5 @@
 import readline, yaml, os, grpc, priyu_pb2, priyu_pb2_grpc
-from datetime import datetime
+from datetime import datetime, timezone
 from rich.prompt import Prompt
 from rich.console import Console
 from rich.table import Table
@@ -61,16 +61,18 @@ class Requester():
 
         table.add_column("Order Time", justify="center", style="medium_purple3")
         table.add_column("Symbol", justify="center", style="light_steel_blue1")
+        table.add_column("StopLoss", justify="right", style="cyan")
         table.add_column("Price", justify="right", style="cyan")
-        table.add_column("Child Order", justify="right", style="cyan")
-        table.add_column("Status", justify="left", style="cyan")
+        table.add_column("Target", justify="right", style="cyan")
+        table.add_column("Child Order", justify="right", style="dark_orange3")
+        table.add_column("Status", justify="left", style="dark_orange3")
 
         for order in res.order:
-            table.add_row(f"{datetime.fromtimestamp(order.ordertime.seconds).strftime('%H:%M:%S')}",
-                        f"{order.symbol:10}",
-                        "","")
+            table.add_row(f"{datetime.fromtimestamp(order.ordertime.seconds,tz=timezone.utc).strftime('%H:%M:%S')}",
+                        f"{order.symbol:10}",f"{order.p5StopLoss/20:>8.2f}",f"{order.p5Price/20:>8.2f}",f"{order.p5Target/20:>8.2f}",
+                        "")
             for child in order.childorder:
-                table.add_row("","","",child.orderno,child.status)
+                table.add_row("","","","","",child.orderno,child.status)
                 # con.print(api.single_order_history(child))
             
         con.print(table)

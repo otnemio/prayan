@@ -20,6 +20,21 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
                 return priyu_pb2.PReply(msg=MD["session"])
             case _:
                 return priyu_pb2.PReply(msg=f"Good")
+    def PosHold(self, request, context):
+        quant = []
+        match request.msg:
+            case 'positions':
+                for index, row in MD['df_positions'].iterrows():
+                    quant.append(priyu_pb2.Quant(tradingsymbol=row['tradingsymbol'],
+                                             product=row['product'],
+                                             quantity=row['quantity']))
+                return priyu_pb2.Quants(quant=quant)
+            case 'holdings':
+                for index, row in MD['df_holdings'].iterrows():
+                    quant.append(priyu_pb2.Quant(tradingsymbol=row['tradingsymbol'],
+                                             product=row['product'],
+                                             quantity=row['quantity']))
+                return priyu_pb2.Quants(quant=quant)
     def LiveData(self, request, context):
         tradingsymbol=f"{request.symbol}-EQ" if request.exchange=="NSE" else f"{request.symbol}"
         tohlcv = []
@@ -32,8 +47,8 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
                 tohlcv.append(priyu_pb2.OHLCV(time=self.ts,
                                               pOpen=row[2],
                                               pHigh=row[3],
-                                              pClose=row[4],
-                                              pLow=row[5],
+                                              pClose=row[5],
+                                              pLow=row[4],
                                               volume=row[6]))
         return priyu_pb2.OHLCVs(ohlcv=tohlcv)
             
@@ -41,8 +56,7 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
         now = datetime.now()
         self.ts.FromDatetime(now)
         tradingsymbol=f"{request.symbol}-EQ"
-        MD["orders"][now] = []
-        MD["details"][now] = request
+        MD["orders"][now] = {'details':request,'positions':[],'targets':[],'stoploss':[]}
         
         return priyu_pb2.OrderReply(ordertime=self.ts)
     def ChildOrdersStatus(self, request, context):
@@ -62,14 +76,17 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
                 # log.info(f"{key} {val}")
                 self.ts.FromDatetime(key)
                 children = []
-                for child in val:
+                for child in val['positions']+val['stoploss']+val['targets']:
                     co = priyu_pb2.ChildOrder()
                     co.orderno = child[0]
                     co.status = child[1]
                     co.p5Price = int(20*child[2])
                     children.append(co)
                 orders.append(priyu_pb2.Order(ordertime=self.ts,
-                                              symbol=MD['details'][key].symbol,
+                                              symbol=MD['orders'][key]['details'].symbol,
+                                              p5Price=MD['orders'][key]['details'].p5Price,
+                                              p5Target=MD['orders'][key]['details'].p5Target,
+                                              p5StopLoss=MD['orders'][key]['details'].p5StopLoss,
                                               status=priyu_pb2.Status.COMPLETE,
                                               childorder=children))
             return priyu_pb2.Orders(order=orders)
@@ -81,7 +98,7 @@ def initialize():
     jobs = []
     log = logging.getLogger("rich")
     
-    MD = {'orders':{},'details':{},'cprice':{},'tradingsymbol':{},'liveTableExists':False, 'infoTableExists':False, 'loggedin':False,
+    MD = {'orders':{},'cprice':{},'tradingsymbol':{},'liveTableExists':False, 'infoTableExists':False, 'loggedin':False,
           'listtokens':[],'feedopened':False,'df_orders':None, 'df_holdings':None,'df_positions':None}
     api = ShoonyaApiPy()
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -152,7 +169,7 @@ def shoonya(TOTP):
                 # log.info(f"{key} {val}")
                 # log.info(f"{MD['details'][key].symbol} {MD['details'][key].p5Price/20}")
                 
-                if MD["orders"][key]:
+                if MD["orders"][key]['positions']:
                     # log.info(MD["orders"][key])
                     for o in MD["orders"][key]:
                         pass
@@ -160,8 +177,9 @@ def shoonya(TOTP):
                         # log.info(ret)
                 else:
                     
-                    MD["orders"][key].append(('123456','open',221.2))
-                    MD["orders"][key].append(('324242','complete',220))
+                    MD["orders"][key]['positions'].append(('123456','complete',221.2))
+                    MD["orders"][key]['positions'].append(('123457','open',221))
+                    MD["orders"][key]['stoploss'].append(('324242','trigger_pending',220))
                                 
                     # tradingsymbol = f"{MD['details'][key].symbol}-EQ"
                     # if abs (MD["details"][key].p5Price / 20.0 - MD["cprice"][tradingsymbol])<1.5:
