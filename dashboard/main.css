@@ -1,0 +1,22 @@
+button.up {
+    color: white;
+    font-size: large;
+    background: #65c07e;
+}
+button:hover.up {
+    background: #5bb975;
+}
+button:active.up {
+    background: #4ea166;
+}
+button.down {
+    color: white;
+    font-size: large;
+    background: #bd5757;
+}
+button:hover.down {
+    background: #b65353;
+}
+button:active.down {
+    background: #944040;    
+}

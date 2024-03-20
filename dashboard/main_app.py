@@ -1,4 +1,4 @@
-import gi, sqlite3, os, sys, yaml, grpc, priyu_pb2, priyu_pb2_grpc
+import matplotlib, gi, sqlite3, os, sys, yaml, grpc, priyu_pb2, priyu_pb2_grpc
 import pandas as pd
 import matplotlib.pyplot as plt
 import mplfinance as mpf
@@ -13,11 +13,31 @@ class Handler():
         global builder, conn
         self.stub = priyu_pb2_grpc.ChirperStub(grpc.insecure_channel('localhost:50051'))
         conn = sqlite3.connect('../collector/bhav_eq_database.db',check_same_thread=False)
+        # Set the backend to GTK
+        matplotlib.use('GTK3Agg')
         self.fetch_instruments()
+        self.connected = False
+        self.try_connecting()
+        self.refresh(None)
+    
+    def try_connecting(self):
+        req = priyu_pb2.PRequest(msg='Connect')
+        try:
+            res = self.stub.Command(req)
+            if res:
+                self.b('lblConnectionStatus1').set_label('Connected')
+                self.connected = True
+            else:
+                self.b('lblConnectionStatus1').set_label('Problem Connecting')
+        except:
+            self.b('lblConnectionStatus1').set_label('Not Connected')
+    
+    def connect(self,button):
+        self.try_connecting()
+        
     def b(self,id):
         return builder.get_object(id)
-    def pr(self,p):
-        return float(p)/100
+    
     def fetch_instruments(self):
         list1 = self.b('lstInstruments1')
 
@@ -51,10 +71,10 @@ class Handler():
         rows = c.fetchall()
         df={'open':[],'close':[],'high':[],'low':[],'date':[]}
         for row in rows:
-            df['high'].append(self.pr(row[2]))
-            df['low'].append(self.pr(row[3]))
-            df['open'].append(self.pr(row[1]))
-            df['close'].append(self.pr(row[4]))
+            df['high'].append(SharedMethods.pr(row[2]))
+            df['low'].append(SharedMethods.pr(row[3]))
+            df['open'].append(SharedMethods.pr(row[1]))
+            df['close'].append(SharedMethods.pr(row[4]))
             df['date'].append(datetime.strptime(f"{row[7]}-{row[6]}-{row[5]}","%Y-%m-%d"))
             
         df_p = pd.DataFrame(df, index=df['date'])
@@ -80,18 +100,8 @@ class Handler():
         
     def display_current_chart(self, symbol):
         srlMatPlot2 = self.b('scrlCurr1')
-        req = priyu_pb2.SRequest(symbol=symbol,exchange='NSE')
-        res = self.stub.LiveData(req)
-        df={'time':[],'open':[],'close':[],'high':[],'low':[],'volume':[]}
-        for row in res.ohlcv:
-            df['time'].append(datetime.fromtimestamp(row.time.seconds,tz=timezone.utc))
-            df['open'].append(SharedMethods.pr(row.pOpen))
-            df['high'].append(SharedMethods.pr(row.pHigh))
-            df['low'].append(SharedMethods.pr(row.pLow))
-            df['close'].append(SharedMethods.pr(row.pClose))
-            df['volume'].append(row.volume)
-        df_p = pd.DataFrame(df, index=df['time'])
-        
+        self.symbol = symbol
+        self.chart_style = self.get_style()
         # canvas.mpl_connect('button_press_event', self._on_click)
         # canvas.mpl_connect('motion_notify_event', self._on_motion)
         # canvas.mpl_connect('pick_event', self._on_pick)
@@ -103,10 +113,88 @@ class Handler():
             self.canvasC = canvas
             srlMatPlot2.add(canvas)
             srlMatPlot2.show_all()
-        self.axC.cla()
-        mpf.plot(df_p, ax=self.axC, returnfig=True, xrotation=0)
-        self.canvasC.draw()
-        self.canvasC.flush_events()
+        self.update_chart()
+    
+    def update_chart(self):
+        if not self.connected:
+            return
+        srlMatPlot2 = self.b('scrlCurr1')
+        if srlMatPlot2.get_children():
+            req = priyu_pb2.SRequest(symbol=self.symbol,exchange='NSE')
+            res = self.stub.LiveData(req)
+            df={'time':[], 'open':[], 'high':[], 'low':[], 'close':[], 'volume':[]}
+            if not res.ohlcv:
+                return
+            for row in res.ohlcv:
+                df['time'].append(datetime.fromtimestamp(row.time.seconds,tz=timezone.utc))
+                df['open'].append(SharedMethods.pr(row.pOpen))
+                df['high'].append(SharedMethods.pr(row.pHigh))
+                df['low'].append(SharedMethods.pr(row.pLow))
+                df['close'].append(SharedMethods.pr(row.pClose))
+                df['volume'].append(row.volume)
+            df_p = pd.DataFrame(df, index=df['time'])
+            self.axC.cla()
+            mpf.plot(df_p, ax=self.axC, returnfig=True, xrotation=0, style=self.chart_style)
+            self.canvasC.draw()
+            self.canvasC.flush_events()
+    
+    def update_posholds(self):
+        boxPosHold1 = self.b('boxPosHold1')
+        req = priyu_pb2.PRequest(msg='positions')
+        # res = self.stub.PosHold(req)
+        for child in boxPosHold1.get_children():
+            boxPosHold1.remove(child)
+        
+        store = Gtk.ListStore(str, str, int)
+        # for quant in res.quant:
+        #     store.append([quant.tradingsymbol, quant.product, quant.quantity])
+        store.append(["BEL","MIS",10])
+        store.append(["BHEL","CNC",20])
+        tree = Gtk.TreeView(model=store)
+        column = Gtk.TreeViewColumn("Positions")
+
+        tradingsymbol = Gtk.CellRendererText()
+        product = Gtk.CellRendererText()
+        quantity = Gtk.CellRendererText()
+        column.pack_start(tradingsymbol, True)
+        column.pack_start(product, True)
+        column.pack_start(quantity, True)
+        column.add_attribute(tradingsymbol, "text", 0)
+        column.add_attribute(product, "text", 1)
+        column.add_attribute(quantity, "text", 2)
+        tree.append_column(column)
+        
+        boxPosHold1.add(tree)
+        
+        store = Gtk.ListStore(str, str, int)
+        # for quant in res.quant:
+        #     store.append([quant.tradingsymbol, quant.product, quant.quantity])
+        store.append(["BEL","CNC",100])
+        store.append(["BHEL","CNC",200])
+        tree = Gtk.TreeView(model=store)
+        column = Gtk.TreeViewColumn("Holdings")
+
+        tradingsymbol = Gtk.CellRendererText()
+        product = Gtk.CellRendererText()
+        quantity = Gtk.CellRendererText()
+        column.pack_start(tradingsymbol, True)
+        column.pack_start(product, True)
+        column.pack_start(quantity, True)
+        column.add_attribute(tradingsymbol, "text", 0)
+        column.add_attribute(product, "text", 1)
+        column.add_attribute(quantity, "text", 2)
+        tree.append_column(column)
+        
+        boxPosHold1.add(tree)
+        boxPosHold1.show_all()
+
+    def refresh(self, button):
+        self.update_chart()
+        self.update_posholds()
+
+    def get_style(self):
+        active_radios = [r for r in self.b('radiomenuitem1').get_group() if r.get_active()]
+        return active_radios[0].get_label()
 class App(Gtk.Application):
     __gtype_name__ = 'DashBoard'
 
@@ -124,8 +212,21 @@ class App(Gtk.Application):
         self.window = self.builder.get_object("appwindow1")
         self.window.maximize()
         self.window.set_application(app)
-
+        self.apply_css()
         self.window.present()
+    
+    def apply_css(self):
+        screen = Gdk.Screen.get_default()
+        css_provider = Gtk.CssProvider()
+        try:
+            css_provider.load_from_path('main.css')
+            context = Gtk.StyleContext()
+            context.add_provider_for_screen(screen, css_provider,
+                                            Gtk.STYLE_PROVIDER_PRIORITY_USER)
+        except GLib.Error as e:
+            print(f"Error in theme: {e} ")
+    
+    # app not closing when mpf plots are opened
 
 
 def initialize():
