@@ -138,6 +138,35 @@ class Handler():
             self.canvasC.draw()
             self.canvasC.flush_events()
     
+    def update_orders(self):
+        boxOrders1 = self.b('boxOrders1')
+        req = priyu_pb2.PRequest(msg='')
+        # res = self.stub.AllOrdersStatus(req)
+        for child in boxOrders1.get_children():
+            boxOrders1.remove(child)
+        store = Gtk.TreeStore(str, str, int)
+        st1 = store.append(None,["BEL","",50])
+        store.append(st1,["BEL","MIS",10])
+        store.append(st1,["BEL","MIS",40])
+        store.append(None,["BHEL","CNC",20])
+        tree = Gtk.TreeView(model=store)
+        column1 = Gtk.TreeViewColumn("Orders")
+
+        tradingsymbol = Gtk.CellRendererText()
+        product = Gtk.CellRendererText()
+        quantity = Gtk.CellRendererText()
+        column1.pack_start(tradingsymbol, True)
+        column1.pack_start(product, True)
+        column1.pack_start(quantity, True)
+        column1.add_attribute(tradingsymbol, "text", 0)
+        column1.add_attribute(product, "text", 1)
+        column1.add_attribute(quantity, "text", 2)
+        
+        tree.append_column(column1)
+        
+        boxOrders1.add(tree)
+        boxOrders1.show_all()
+
     def update_posholds(self):
         boxPosHold1 = self.b('boxPosHold1')
         req = priyu_pb2.PRequest(msg='positions')
@@ -191,10 +220,15 @@ class Handler():
     def refresh(self, button):
         self.update_chart()
         self.update_posholds()
+        self.update_orders()
 
     def get_style(self):
         active_radios = [r for r in self.b('radiomenuitem1').get_group() if r.get_active()]
         return active_radios[0].get_label()
+    
+    def close_application(self, event, data):
+        plt.close('all')
+        print("Exit complete")
 class App(Gtk.Application):
     __gtype_name__ = 'DashBoard'
 
@@ -226,7 +260,6 @@ class App(Gtk.Application):
         except GLib.Error as e:
             print(f"Error in theme: {e} ")
     
-    # app not closing when mpf plots are opened
 
 
 def initialize():

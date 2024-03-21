@@ -6,6 +6,7 @@
     <property name="width-request">800</property>
     <property name="height-request">600</property>
     <property name="can-focus">False</property>
+    <signal name="delete-event" handler="close_application" swapped="no"/>
     <child>
       <object class="GtkBox">
         <property name="visible">True</property>
@@ -423,9 +424,16 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkFixed">
+                      <object class="GtkBox" id="boxOrders1">
+                        <property name="width-request">100</property>
+                        <property name="height-request">80</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <property name="homogeneous">True</property>
+                        <child>
+                          <placeholder/>
+                        </child>
                       </object>
                       <packing>
                         <property name="title" translatable="yes">Orders</property>
