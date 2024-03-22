@@ -6,3 +6,4 @@ bhav_eq_database.db
 test/*
 analyser/*
 */__pycache__/*
+bhav_live.db

@@ -24,16 +24,19 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
         quant = []
         match request.msg:
             case 'positions':
-                for index, row in MD['df_positions'].iterrows():
-                    quant.append(priyu_pb2.Quant(tradingsymbol=row['tradingsymbol'],
-                                             product=row['product'],
-                                             quantity=row['quantity']))
+                if MD['df_positions'] is not None:
+                    for index, row in MD['df_positions'].iterrows():
+                        quant.append(priyu_pb2.Quant(tradingsymbol=row['tradingsymbol'],
+                                                product=row['product'],
+                                                pnl=row['pnl'],
+                                                quantity=row['quantity']))
                 return priyu_pb2.Quants(quant=quant)
             case 'holdings':
-                for index, row in MD['df_holdings'].iterrows():
-                    quant.append(priyu_pb2.Quant(tradingsymbol=row['tradingsymbol'],
-                                             product=row['product'],
-                                             quantity=row['quantity']))
+                if MD['df_holdings'] is not None:
+                    for index, row in MD['df_holdings'].iterrows():
+                        quant.append(priyu_pb2.Quant(tradingsymbol=row['tradingsymbol'],
+                                                product=row['product'],
+                                                quantity=row['quantity']))
                 return priyu_pb2.Quants(quant=quant)
     def LiveData(self, request, context):
         tradingsymbol=f"{request.symbol}-EQ" if request.exchange=="NSE" else f"{request.symbol}"
@@ -129,12 +132,13 @@ def store_orders_data(data):
     return pd.DataFrame(df)
 
 def store_positions_data(data):
-    df = {'tradingsymbol':[],'product':[],'quantity':[]}
+    df = {'tradingsymbol':[],'product':[],'quantity':[],'pnl':[]}
     for row in data:
         if row['stat']=='Ok':
             df['tradingsymbol'].append(row['tsym'])
             df['product'].append(row['s_prdt_ali'])
             df['quantity'].append(int(row['netqty']))
+            df['pnl'].append(float(row['rpnl']))
     return pd.DataFrame(df)
 
 def store_holdings_data(data):

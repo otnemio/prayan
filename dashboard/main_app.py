@@ -170,36 +170,42 @@ class Handler():
     def update_posholds(self):
         boxPosHold1 = self.b('boxPosHold1')
         req = priyu_pb2.PRequest(msg='positions')
-        # res = self.stub.PosHold(req)
+        res = self.stub.PosHold(req)
         for child in boxPosHold1.get_children():
             boxPosHold1.remove(child)
         
-        store = Gtk.ListStore(str, str, int)
-        # for quant in res.quant:
-        #     store.append([quant.tradingsymbol, quant.product, quant.quantity])
-        store.append(["BEL","MIS",10])
-        store.append(["BHEL","CNC",20])
+        store = Gtk.ListStore(str, str, int, str)
+        
+        for quant in res.quant:
+            store.append([quant.tradingsymbol, quant.product, quant.quantity, f"{quant.pnl:.2f}"])
         tree = Gtk.TreeView(model=store)
         column = Gtk.TreeViewColumn("Positions")
 
         tradingsymbol = Gtk.CellRendererText()
         product = Gtk.CellRendererText()
         quantity = Gtk.CellRendererText()
+        pnl = Gtk.CellRendererText()
+        pnl.set_property('xalign',1)
+        
         column.pack_start(tradingsymbol, True)
         column.pack_start(product, True)
         column.pack_start(quantity, True)
+        column.pack_start(pnl, True)
         column.add_attribute(tradingsymbol, "text", 0)
         column.add_attribute(product, "text", 1)
         column.add_attribute(quantity, "text", 2)
+        column.add_attribute(pnl, "text", 3)
         tree.append_column(column)
         
         boxPosHold1.add(tree)
         
+        req = priyu_pb2.PRequest(msg='holdings')
+        res = self.stub.PosHold(req)
         store = Gtk.ListStore(str, str, int)
-        # for quant in res.quant:
-        #     store.append([quant.tradingsymbol, quant.product, quant.quantity])
-        store.append(["BEL","CNC",100])
-        store.append(["BHEL","CNC",200])
+        for quant in res.quant:
+            store.append([quant.tradingsymbol, quant.product, quant.quantity])
+        # store.append(["BEL","CNC",100])
+        # store.append(["BHEL","CNC",200])
         tree = Gtk.TreeView(model=store)
         column = Gtk.TreeViewColumn("Holdings")
 
@@ -228,7 +234,8 @@ class Handler():
     
     def close_application(self, event, data):
         plt.close('all')
-        print("Exit complete")
+        print("Application closed successfully.")
+
 class App(Gtk.Application):
     __gtype_name__ = 'DashBoard'
 

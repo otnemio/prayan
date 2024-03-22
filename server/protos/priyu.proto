@@ -21,6 +21,7 @@ message Quant {
   string tradingsymbol =1;
   string product = 2;
   int32 quantity = 3;
+  float pnl = 4;
 }
 message OHLCVs {
   repeated OHLCV ohlcv = 1;
