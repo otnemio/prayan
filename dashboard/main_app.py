@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import mplfinance as mpf
 from datetime import datetime, timezone
 from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
+from matplotlib.patches import Rectangle
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk, GLib
 from sharedmethods import SharedMethods
@@ -102,9 +103,6 @@ class Handler():
         srlMatPlot2 = self.b('scrlCurr1')
         self.symbol = symbol
         self.chart_style = self.get_style()
-        # canvas.mpl_connect('button_press_event', self._on_click)
-        # canvas.mpl_connect('motion_notify_event', self._on_motion)
-        # canvas.mpl_connect('pick_event', self._on_pick)
         # canvas.set_size_request(800, 600)
         if not srlMatPlot2.get_children():
             fig, ax = plt.subplots()
@@ -113,6 +111,10 @@ class Handler():
             self.canvasC = canvas
             srlMatPlot2.add(canvas)
             srlMatPlot2.show_all()
+        # canvas.mpl_connect('button_press_event', self._on_press)
+        # canvas.mpl_connect('motion_notify_event', self._on_motion)
+        # canvas.mpl_connect('button_release_event', self._on_release)
+        
         self.update_chart()
     
     def update_chart(self):
@@ -137,7 +139,19 @@ class Handler():
             mpf.plot(df_p, ax=self.axC, returnfig=True, xrotation=0, style=self.chart_style)
             self.canvasC.draw()
             self.canvasC.flush_events()
-    
+
+    def higher(self, button):
+        rect1 = Rectangle((0.7,0.6),0.25,0.15, color='green',alpha=0.3)
+        rect2 = Rectangle((0.7,0.55),0.25,0.05, color ='blue', alpha=0.3)
+        
+        self.axC.add_patch(rect1)
+        self.axC.add_patch(rect2)
+        self.canvasC.draw()
+        self.canvasC.flush_events()
+
+    def lower(self, button):
+        pass
+
     def update_orders(self):
         boxOrders1 = self.b('boxOrders1')
         req = priyu_pb2.PRequest(msg='')
