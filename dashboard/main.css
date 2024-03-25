@@ -10,6 +10,9 @@ button:hover.high {
 button:active.high {
     background: #4ea166;
 }
+button:checked.high {
+    background: #3b7a4d;
+}
 button.low {
     color: darkred;
     background: #bd5757;
@@ -20,5 +23,8 @@ button:hover.low {
     background: #b65353;
 }
 button:active.low {
-    background: #944040;    
+    background: #a04545;    
+}
+button:checked.low {
+    background: #8a3a3a;    
 }

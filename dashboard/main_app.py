@@ -43,21 +43,16 @@ class Handler():
         list1 = self.b('lstInstruments1')
 
         with open("../server/instruments.yaml","r") as stream:
-            try:
-                instruments = yaml.safe_load(stream)
-                for instrument in instruments:
-                    print(instrument)
-                    for key, value in instrument.items():
-                        button = Gtk.Button.new_with_label(key)
-                        button.connect("pressed",self.display_instrument)
-                        for exch, token in value.items():
-                            print(exch,token)
-                    row = Gtk.ListBoxRow()
-                    row.add(button)
-                    list1.insert(row,-1)
-            except:
-                print(exec)
+            instruments = yaml.safe_load(stream)
+            for instrument in instruments:
+                for key, value in instrument.items():
+                    button = Gtk.Button.new_with_label(key)
+                    button.connect("pressed",self.display_instrument)
+                row = Gtk.ListBoxRow()
+                row.add(button)
+                list1.insert(row,-1)
         list1.show_all()
+        
     def display_instrument(self, button):
         heading1 = self.b('lblHeading1')
         symbol = button.get_label()

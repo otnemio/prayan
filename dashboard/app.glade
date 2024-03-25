@@ -14,6 +14,7 @@
     <property name="height-request">600</property>
     <property name="can-focus">False</property>
     <property name="title" translatable="yes">प्रयन</property>
+    <property name="icon-name">accessories-calculator-symbolic</property>
     <signal name="delete-event" handler="close_application" swapped="no"/>
     <child>
       <object class="GtkBox">
@@ -324,12 +325,15 @@
                                     <property name="can-focus">False</property>
                                     <property name="homogeneous">True</property>
                                     <child>
-                                      <object class="GtkButton">
-                                        <property name="label" translatable="yes">▼</property>
+                                      <object class="GtkRadioButton">
+                                        <property name="label" translatable="yes">▲</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
-                                        <property name="receives-default">True</property>
-                                        <property name="relief">none</property>
+                                        <property name="receives-default">False</property>
+                                        <property name="tooltip-text" translatable="yes">Small Beginning</property>
+                                        <property name="active">True</property>
+                                        <property name="draw-indicator">False</property>
+                                        <property name="group">radiobuttonUp1</property>
                                         <style>
                                           <class name="high"/>
                                         </style>
@@ -341,12 +345,14 @@
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkButton">
+                                      <object class="GtkRadioButton" id="radiobuttonUp1">
                                         <property name="label" translatable="yes">■</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
-                                        <property name="receives-default">True</property>
-                                        <property name="relief">none</property>
+                                        <property name="receives-default">False</property>
+                                        <property name="tooltip-text" translatable="yes">Equally Distibuted</property>
+                                        <property name="active">True</property>
+                                        <property name="draw-indicator">False</property>
                                         <style>
                                           <class name="high"/>
                                         </style>
@@ -358,12 +364,15 @@
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkButton">
-                                        <property name="label" translatable="yes">▲</property>
+                                      <object class="GtkRadioButton">
+                                        <property name="label" translatable="yes">▼</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
-                                        <property name="receives-default">True</property>
-                                        <property name="relief">none</property>
+                                        <property name="receives-default">False</property>
+                                        <property name="tooltip-text" translatable="yes">Large Beginning</property>
+                                        <property name="active">True</property>
+                                        <property name="draw-indicator">False</property>
+                                        <property name="group">radiobuttonUp1</property>
                                         <style>
                                           <class name="high"/>
                                         </style>
@@ -422,12 +431,15 @@
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <child>
-                                      <object class="GtkButton">
+                                      <object class="GtkRadioButton">
                                         <property name="label" translatable="yes">▼</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
-                                        <property name="receives-default">True</property>
-                                        <property name="relief">none</property>
+                                        <property name="receives-default">False</property>
+                                        <property name="tooltip-text" translatable="yes">Small Beginning</property>
+                                        <property name="active">True</property>
+                                        <property name="draw-indicator">False</property>
+                                        <property name="group">radiobuttonDown1</property>
                                         <style>
                                           <class name="low"/>
                                         </style>
@@ -439,12 +451,14 @@
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkButton">
+                                      <object class="GtkRadioButton" id="radiobuttonDown1">
                                         <property name="label" translatable="yes">■</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
-                                        <property name="receives-default">True</property>
-                                        <property name="relief">none</property>
+                                        <property name="receives-default">False</property>
+                                        <property name="tooltip-text" translatable="yes">Equally Distibuted</property>
+                                        <property name="active">True</property>
+                                        <property name="draw-indicator">False</property>
                                         <style>
                                           <class name="low"/>
                                         </style>
@@ -456,12 +470,15 @@
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkButton">
+                                      <object class="GtkRadioButton">
                                         <property name="label" translatable="yes">▲</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
-                                        <property name="receives-default">True</property>
-                                        <property name="relief">none</property>
+                                        <property name="receives-default">False</property>
+                                        <property name="tooltip-text" translatable="yes">Large Beginning</property>
+                                        <property name="active">True</property>
+                                        <property name="draw-indicator">False</property>
+                                        <property name="group">radiobuttonDown1</property>
                                         <style>
                                           <class name="low"/>
                                         </style>
