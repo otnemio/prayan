@@ -5,8 +5,8 @@ import mplfinance as mpf
 from datetime import datetime, timezone
 from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
 from matplotlib.patches import Rectangle
-gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk, GLib
+gi.require_version("Gtk", "3.0")
 from sharedmethods import SharedMethods
 
 class Handler():
@@ -89,6 +89,7 @@ class Handler():
         #     srlMatPlot1.remove(child)
         if not srlMatPlot1.get_children():
             fig, ax = plt.subplots()
+            fig.tight_layout()
             canvas = FigureCanvas(fig)  # a Gtk.DrawingArea
             self.axH = ax
             self.canvasH = canvas
@@ -106,6 +107,7 @@ class Handler():
         # canvas.set_size_request(800, 600)
         if not srlMatPlot2.get_children():
             fig, ax = plt.subplots()
+            fig.tight_layout()
             canvas = FigureCanvas(fig)  # a Gtk.DrawingArea
             self.axC = ax
             self.canvasC = canvas

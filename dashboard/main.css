@@ -1,22 +1,24 @@
-button.up {
-    color: white;
-    font-size: large;
+button.high {
+    color: darkgreen;
     background: #65c07e;
+    border-color: darkgreen;
+    margin: 1px;
 }
-button:hover.up {
+button:hover.high {
     background: #5bb975;
 }
-button:active.up {
+button:active.high {
     background: #4ea166;
 }
-button.down {
-    color: white;
-    font-size: large;
+button.low {
+    color: darkred;
     background: #bd5757;
+    border-color: darkred;
+    margin: 1px;
 }
-button:hover.down {
+button:hover.low {
     background: #b65353;
 }
-button:active.down {
+button:active.low {
     background: #944040;    
 }
