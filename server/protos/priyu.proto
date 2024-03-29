@@ -58,9 +58,9 @@ message ChildOrder {
   string orderno = 1;
   string tradingsymbol = 2;
   string status = 3;
-  int32 quantity =4;
+  int32 quantity = 4;
   int32 p5Price = 5;
-  Type type =6;
+  Type type = 6;
 }
 
 enum Type {
@@ -71,9 +71,11 @@ enum Type {
 message OrderRequest {
   string symbol = 1;
   Type type = 2;
-  int32 p5Price = 3;
+  int32 p5Trigger = 3;
   int32 p5StopLoss = 4;
   int32 p5Target = 5;
+  string steps = 6;
+  int32 qtyPercent = 7;
 }
 message OrderReply {
   google.protobuf.Timestamp ordertime = 1;
