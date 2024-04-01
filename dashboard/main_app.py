@@ -106,6 +106,7 @@ class Handler():
             canvas = FigureCanvas(fig)  # a Gtk.DrawingArea
             self.axC = ax
             self.canvasC = canvas
+            canvas.mpl_connect('button_press_event', self.on_click)
             srlMatPlot2.add(canvas)
             srlMatPlot2.show_all()
         # canvas.mpl_connect('button_press_event', self._on_press)
@@ -113,7 +114,11 @@ class Handler():
         # canvas.mpl_connect('button_release_event', self._on_release)
         
         self.update_chart()
-    
+    def on_click(self, event):
+        entrySL1 = self.b('entrySL1')
+        if event.button == 1:
+            entrySL1.set_text(str(int(event.ydata*20)/20.0))
+        
     def update_chart(self):
         if not self.connected:
             return
@@ -145,9 +150,36 @@ class Handler():
         self.axC.add_patch(rect2)
         self.canvasC.draw()
         self.canvasC.flush_events()
+        lblHeading1 = self.b('lblHeading1')
+        entrySL1 = self.b('entrySL1')
+        spinPercent1 = self.b('spinPercent1')
+        active_radios = [r for r in self.b('radiobuttonUp1').get_group() if r.get_active()]
+        req = priyu_pb2.OrderRequest(symbol=lblHeading1.get_text(),
+                                     type=priyu_pb2.Type.BUY,
+                                     p5Trigger=0,
+                                     p5Target=0,
+                                     p5StopLoss=int(float(entrySL1.get_text())*20),
+                                     steps=active_radios[0].get_name(),
+                                     qtyPercent=int(spinPercent1.get_text()))
+        res = self.stub.BracketOrder(req)
+        if res:
+            print("Order submission successful.")
 
     def lower(self, button):
-        pass
+        lblHeading1 = self.b('lblHeading1')
+        entrySL1 = self.b('entrySL1')
+        spinPercent1 = self.b('spinPercent1')
+        active_radios = [r for r in self.b('radiobuttonDown1').get_group() if r.get_active()]
+        req = priyu_pb2.OrderRequest(symbol=lblHeading1.get_text(),
+                                     type=priyu_pb2.Type.SELL,
+                                     p5Trigger=0,
+                                     p5Target=0,
+                                     p5StopLoss=int(float(entrySL1.get_text())*20),
+                                     steps=active_radios[0].get_name(),
+                                     qtyPercent=int(spinPercent1.get_text()))
+        res = self.stub.BracketOrder(req)
+        if res:
+            print("Order submission successful.")
 
     def update_orders(self):
         boxOrders1 = self.b('boxOrders1')

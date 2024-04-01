@@ -60,11 +60,11 @@
                     <property name="margin-end">8</property>
                     <property name="margin-top">4</property>
                     <property name="margin-bottom">4</property>
-                    <property name="label" translatable="yes">Instruments</property>
+                    <property name="label" translatable="yes">INSTRUMENTS</property>
                     <property name="justify">center</property>
                     <property name="single-line-mode">True</property>
                     <attributes>
-                      <attribute name="font-desc" value="El Abogado Loco 14"/>
+                      <attribute name="font-desc" value="FreeMono Bold 14"/>
                     </attributes>
                   </object>
                   <packing>
@@ -281,33 +281,62 @@
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkBox">
+                              <!-- n-columns=2 n-rows=2 -->
+                              <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="orientation">vertical</property>
                                 <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <object class="GtkSpinButton">
+                                  <object class="GtkEntry" id="entrySL1">
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">Right Click to pick value.</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">StopLoss</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">Amount</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="spinPercent1">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">Percent of deployable amount.</property>
                                     <property name="input-purpose">number</property>
                                     <property name="adjustment">adjustment1</property>
                                     <property name="numeric">True</property>
                                   </object>
                                   <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">2</property>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">1</property>
                                   </packing>
                                 </child>
                               </object>
                               <packing>
-                                <property name="expand">True</property>
+                                <property name="expand">False</property>
                                 <property name="fill">True</property>
                                 <property name="position">1</property>
                               </packing>
@@ -327,11 +356,11 @@
                                     <child>
                                       <object class="GtkRadioButton">
                                         <property name="label" translatable="yes">▲</property>
+                                        <property name="name">increasing</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">False</property>
                                         <property name="tooltip-text" translatable="yes">Small Beginning</property>
-                                        <property name="active">True</property>
                                         <property name="draw-indicator">False</property>
                                         <property name="group">radiobuttonUp1</property>
                                         <style>
@@ -347,6 +376,7 @@
                                     <child>
                                       <object class="GtkRadioButton" id="radiobuttonUp1">
                                         <property name="label" translatable="yes">■</property>
+                                        <property name="name">equal</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">False</property>
@@ -366,11 +396,11 @@
                                     <child>
                                       <object class="GtkRadioButton">
                                         <property name="label" translatable="yes">▼</property>
+                                        <property name="name">decreasing</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">False</property>
                                         <property name="tooltip-text" translatable="yes">Large Beginning</property>
-                                        <property name="active">True</property>
                                         <property name="draw-indicator">False</property>
                                         <property name="group">radiobuttonUp1</property>
                                         <style>
@@ -396,7 +426,6 @@
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">True</property>
-                                    <property name="relief">none</property>
                                     <signal name="clicked" handler="higher" swapped="no"/>
                                     <style>
                                       <class name="high"/>
@@ -414,7 +443,6 @@
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">True</property>
-                                    <property name="relief">none</property>
                                     <signal name="clicked" handler="lower" swapped="no"/>
                                     <style>
                                       <class name="low"/>
@@ -430,14 +458,15 @@
                                   <object class="GtkBox">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="homogeneous">True</property>
                                     <child>
                                       <object class="GtkRadioButton">
                                         <property name="label" translatable="yes">▼</property>
+                                        <property name="name">increasing</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">False</property>
                                         <property name="tooltip-text" translatable="yes">Small Beginning</property>
-                                        <property name="active">True</property>
                                         <property name="draw-indicator">False</property>
                                         <property name="group">radiobuttonDown1</property>
                                         <style>
@@ -453,6 +482,7 @@
                                     <child>
                                       <object class="GtkRadioButton" id="radiobuttonDown1">
                                         <property name="label" translatable="yes">■</property>
+                                        <property name="name">equal</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">False</property>
@@ -472,11 +502,11 @@
                                     <child>
                                       <object class="GtkRadioButton">
                                         <property name="label" translatable="yes">▲</property>
+                                        <property name="name">decreasing</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">False</property>
                                         <property name="tooltip-text" translatable="yes">Large Beginning</property>
-                                        <property name="active">True</property>
                                         <property name="draw-indicator">False</property>
                                         <property name="group">radiobuttonDown1</property>
                                         <style>
@@ -726,7 +756,7 @@
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="label" translatable="yes">Analysis</property>
+                <property name="label" translatable="yes">Alerts</property>
               </object>
               <packing>
                 <property name="position">2</property>
