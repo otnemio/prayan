@@ -140,7 +140,7 @@ def store_positions_data(data):
             df['tradingsymbol'].append(row['tsym'])
             df['product'].append(row['s_prdt_ali'])
             df['quantity'].append(int(row['netqty']))
-            df['pnl'].append(float(row['rpnl']))
+            df['pnl'].append(float(row['rpnl'])+float(row['urmtom']))
     return pd.DataFrame(df)
 
 def store_holdings_data(data):
@@ -148,8 +148,8 @@ def store_holdings_data(data):
     for row in data:
         if row['stat']=='Ok':
             df['tradingsymbol'].append(row['exch_tsym'][0]['tsym'])
-            df['product'].append(row['s_prdt_ali'])
-            df['quantity'].append(max(int(row['dpqty']),int(row['npoadqty'])))
+            df['product'].append(row['s_prdt_ali'])  
+            df['quantity'].append(max(int(row['dpqty']),int(row['npoadqty'])) if 'dpqty' in row else int(row['npoadqty']))
     return pd.DataFrame(df)
 
 def shoonya(TOTP):
@@ -390,6 +390,7 @@ class ShoonyaApiPy(NorenApi):
                                         MD['paperPositions'][tradingsymbol]['totprc'] += (prc*val[3] if val[1]=='B'
                                                                                          else -prc*val[3])
                                     val[0]='complete'
+                                    log.info(f"{val} {MD['cprice'][tradingsymbol]}")
 
                     if not row:
                         c.execute('''INSERT OR IGNORE INTO live (tradingsymbol, minute, openp, highp, lowp, closep, volume) VALUES (?,?,?,?,?,?,?) ''',
