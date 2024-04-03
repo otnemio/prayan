@@ -289,7 +289,7 @@
                                   <object class="GtkEntry" id="entrySL1">
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
-                                    <property name="tooltip-text" translatable="yes">Right Click to pick value.</property>
+                                    <property name="tooltip-text" translatable="yes">Click on current chart to pick value.</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">1</property>

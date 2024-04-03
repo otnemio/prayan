@@ -1,10 +1,11 @@
 import matplotlib, gi, sqlite3, os, sys, yaml, grpc, priyu_pb2, priyu_pb2_grpc
-import pandas as pd
+import pandas as pd, numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.transforms as transforms
 import mplfinance as mpf
 from datetime import datetime, timezone
 from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
-from matplotlib.patches import Rectangle
+from matplotlib.patches import Rectangle, Ellipse, Circle
 from gi.repository import Gtk, Gdk, GLib
 gi.require_version("Gtk", "3.0")
 from sharedmethods import SharedMethods
@@ -88,6 +89,7 @@ class Handler():
             canvas = FigureCanvas(fig)  # a Gtk.DrawingArea
             self.axH = ax
             self.canvasH = canvas
+            self.circles = []
             srlMatPlot1.add(canvas)
             srlMatPlot1.show_all()
         self.axH.cla()
@@ -106,7 +108,11 @@ class Handler():
             canvas = FigureCanvas(fig)  # a Gtk.DrawingArea
             self.axC = ax
             self.canvasC = canvas
+            self.figC = fig
+            self.circle_select = None
             canvas.mpl_connect('button_press_event', self.on_click)
+            canvas.mpl_connect('motion_notify_event', self.on_motion)
+            canvas.mpl_connect('button_release_event', self.on_release)
             srlMatPlot2.add(canvas)
             srlMatPlot2.show_all()
         # canvas.mpl_connect('button_press_event', self._on_press)
@@ -114,10 +120,29 @@ class Handler():
         # canvas.mpl_connect('button_release_event', self._on_release)
         
         self.update_chart()
+    
+    def on_motion(self, event):
+        if self.circle_select is not None:
+            self.circle_select.center = (event.xdata,event.ydata)
+            self.canvasC.draw_idle()
+    def on_release(self, event):
+        if self.circle_select is not None:
+            self.circle_select = None
     def on_click(self, event):
         entrySL1 = self.b('entrySL1')
         if event.button == 1:
             entrySL1.set_text(str(int(event.ydata*20)/20.0))
+            self.clickX = event.xdata
+            self.clickY = event.ydata
+            for circle in self.circles:
+                print(circle)
+                if circle.contains(event)[0]:
+                    circle.set_color('red')
+                    self.circle_select = circle
+                else:
+                    circle.set_color('pink')
+            self.canvasC.draw_idle()
+            
         
     def update_chart(self):
         if not self.connected:
@@ -139,17 +164,47 @@ class Handler():
             df_p = pd.DataFrame(df, index=df['time'])
             self.axC.cla()
             mpf.plot(df_p, ax=self.axC, returnfig=True, xrotation=0, style=self.chart_style)
-            self.canvasC.draw()
-            self.canvasC.flush_events()
+            self.canvasC.draw_idle()
 
-    def higher(self, button):
-        rect1 = Rectangle((0.7,0.6),0.25,0.15, color='green',alpha=0.3)
-        rect2 = Rectangle((0.7,0.55),0.25,0.05, color ='blue', alpha=0.3)
+    def create_ranged_bracket(self):
+        print("Creating")
+        updis = 1
+        downdis= 0.5
+        fardis = 30
+        origin = (self.clickX,self.clickY)
+        over = (self.clickX,self.clickY+updis)
+        below = (self.clickX,self.clickY-downdis)
+        far = (self.clickX+fardis,self.clickY)
         
+        
+        xscale, yscale = self.axC.transData.transform([1, 1]) - self.axC.transData.transform([0, 0])
+        radius_x = 4
+        radius_y = radius_x * xscale / yscale
+        
+        c1 = Ellipse(origin, radius_x, radius_y,color='pink',alpha=0.8)
+        c2 = Ellipse(over, radius_x, radius_y,color='pink',alpha=0.8)
+        c3 = Ellipse(below, radius_x, radius_y,color='pink',alpha=0.8)
+        c4 = Ellipse(far, radius_x, radius_y,color='pink',alpha=0.8)
+        
+        rect1 = Rectangle(origin,fardis,updis, color='green',alpha=0.3)
+        rect2 = Rectangle(origin,fardis,-downdis, color ='blue', alpha=0.3)
+        self.circles.append(c1)
+        self.circles.append(c2)
+        self.circles.append(c3)
+        self.circles.append(c4)
+        self.axC.add_patch(c1)
+        self.axC.add_patch(c2)
+        self.axC.add_patch(c3)
+        self.axC.add_patch(c4)
         self.axC.add_patch(rect1)
         self.axC.add_patch(rect2)
-        self.canvasC.draw()
-        self.canvasC.flush_events()
+        
+        self.canvasC.draw_idle()
+        print("Created")
+
+    def higher(self, button):
+        self.create_ranged_bracket()
+        return
         lblHeading1 = self.b('lblHeading1')
         entrySL1 = self.b('entrySL1')
         spinPercent1 = self.b('spinPercent1')
