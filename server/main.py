@@ -1,7 +1,7 @@
 import random, math, sqlite3, os, yaml, logging, time, grpc, priyu_pb2, priyu_pb2_grpc
 import pandas as pd
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 from google.protobuf.timestamp_pb2 import Timestamp
 from rich.logging import RichHandler
 from concurrent import futures
@@ -41,7 +41,7 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
     def LiveData(self, request, context):
         tradingsymbol=f"{request.symbol}-EQ" if request.exchange=="NSE" else f"{request.symbol}"
         tohlcv = []
-        if MD['liveTableExists']:
+        try:
             c =conn_mem.cursor()
             c.execute('''SELECT * FROM live WHERE tradingsymbol = ?''',(tradingsymbol,))
             rows = c.fetchall()
@@ -53,7 +53,10 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
                                               pClose=row[5],
                                               pLow=row[4],
                                               volume=row[6]))
+        except Exception as e:
+            log.error("Error fetching live data.")
         return priyu_pb2.OHLCVs(ohlcv=tohlcv)
+        
             
     def BracketOrder(self, request, context):
         now = datetime.now()
@@ -428,7 +431,7 @@ class ShoonyaApiPy(NorenApi):
     def open_callback(self):
         global conn_mem
         MD['feedopened'] = True
-        conn_mem = sqlite3.connect(':memory:',check_same_thread=False)
+        conn_mem = sqlite3.connect('bhav_live.db' if os.path.exists('bhav_live.db') else ':memory:', check_same_thread=False)
 
     def close_callback(self):
         MD['feedopened'] = False
