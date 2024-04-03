@@ -89,7 +89,6 @@ class Handler():
             canvas = FigureCanvas(fig)  # a Gtk.DrawingArea
             self.axH = ax
             self.canvasH = canvas
-            self.circles = []
             srlMatPlot1.add(canvas)
             srlMatPlot1.show_all()
         self.axH.cla()
@@ -109,7 +108,8 @@ class Handler():
             self.axC = ax
             self.canvasC = canvas
             self.figC = fig
-            self.circle_select = None
+            # fix twice init issue
+            self.tool = {'circles':[],'rectangles':[],'selected_circle':None}
             canvas.mpl_connect('button_press_event', self.on_click)
             canvas.mpl_connect('motion_notify_event', self.on_motion)
             canvas.mpl_connect('button_release_event', self.on_release)
@@ -122,23 +122,46 @@ class Handler():
         self.update_chart()
     
     def on_motion(self, event):
-        if self.circle_select is not None:
-            self.circle_select.center = (event.xdata,event.ydata)
+        if self.tool['selected_circle'] is not None:
+            c1 = self.tool['circles'][0]
+            c2 = self.tool['circles'][1]
+            c3 = self.tool['circles'][2]
+            c4 = self.tool['circles'][3]
+            match self.tool['selected_circle'].get_label():
+                case 'c1':
+                    c1.center = (event.xdata, event.ydata)
+                    c4.center = (event.xdata+self.tool['rectangles'][0].get_width(), event.ydata)
+                    c2.center = (event.xdata, c2.center[1])
+                    c3.center = (event.xdata, c3.center[1])
+                    self.tool['rectangles'][0].set_xy((event.xdata, event.ydata))
+                    self.tool['rectangles'][0].set_height(c2.center[1]-c1.center[1])
+                    self.tool['rectangles'][1].set_xy((event.xdata, event.ydata))
+                    self.tool['rectangles'][1].set_height(c3.center[1]-c1.center[1])
+                case 'c2':
+                    self.tool['selected_circle'].center = (self.tool['selected_circle'].center[0], event.ydata)
+                    self.tool['rectangles'][0].set_height(c2.center[1]-c1.center[1])
+                case 'c3':
+                    self.tool['selected_circle'].center = (self.tool['selected_circle'].center[0], event.ydata)    
+                    self.tool['rectangles'][1].set_height(c3.center[1]-c1.center[1])
+                case 'c4':
+                    self.tool['selected_circle'].center = (event.xdata, self.tool['selected_circle'].center[1])
+                    self.tool['rectangles'][0].set_width(c4.center[0]-c1.center[0])
+                    self.tool['rectangles'][1].set_width(c4.center[0]-c1.center[0])
+                
             self.canvasC.draw_idle()
     def on_release(self, event):
-        if self.circle_select is not None:
-            self.circle_select = None
+        if self.tool['selected_circle'] is not None:
+            self.tool['selected_circle'] = None
     def on_click(self, event):
         entrySL1 = self.b('entrySL1')
         if event.button == 1:
             entrySL1.set_text(str(int(event.ydata*20)/20.0))
             self.clickX = event.xdata
             self.clickY = event.ydata
-            for circle in self.circles:
-                print(circle)
+            for circle in self.tool['circles']:
                 if circle.contains(event)[0]:
                     circle.set_color('red')
-                    self.circle_select = circle
+                    self.tool['selected_circle'] = circle
                 else:
                     circle.set_color('pink')
             self.canvasC.draw_idle()
@@ -167,7 +190,7 @@ class Handler():
             self.canvasC.draw_idle()
 
     def create_ranged_bracket(self):
-        print("Creating")
+        
         updis = 1
         downdis= 0.5
         fardis = 30
@@ -181,17 +204,20 @@ class Handler():
         radius_x = 4
         radius_y = radius_x * xscale / yscale
         
-        c1 = Ellipse(origin, radius_x, radius_y,color='pink',alpha=0.8)
-        c2 = Ellipse(over, radius_x, radius_y,color='pink',alpha=0.8)
-        c3 = Ellipse(below, radius_x, radius_y,color='pink',alpha=0.8)
-        c4 = Ellipse(far, radius_x, radius_y,color='pink',alpha=0.8)
+        c1 = Ellipse(origin, radius_x, radius_y,color='pink',alpha=0.8,label='c1')
+        c2 = Ellipse(over, radius_x, radius_y,color='pink',alpha=0.8,label='c2')
+        c3 = Ellipse(below, radius_x, radius_y,color='pink',alpha=0.8,label='c3')
+        c4 = Ellipse(far, radius_x, radius_y,color='pink',alpha=0.8,label='c4')
         
         rect1 = Rectangle(origin,fardis,updis, color='green',alpha=0.3)
         rect2 = Rectangle(origin,fardis,-downdis, color ='blue', alpha=0.3)
-        self.circles.append(c1)
-        self.circles.append(c2)
-        self.circles.append(c3)
-        self.circles.append(c4)
+        self.tool['circles'].append(c1)
+        self.tool['circles'].append(c2)
+        self.tool['circles'].append(c3)
+        self.tool['circles'].append(c4)
+        self.tool['rectangles'].append(rect1)
+        self.tool['rectangles'].append(rect2)
+        
         self.axC.add_patch(c1)
         self.axC.add_patch(c2)
         self.axC.add_patch(c3)
@@ -200,9 +226,10 @@ class Handler():
         self.axC.add_patch(rect2)
         
         self.canvasC.draw_idle()
-        print("Created")
+        
 
     def higher(self, button):
+        self.tool = {'circles':[],'rectangles':[],'selected_circle':None}
         self.create_ranged_bracket()
         return
         lblHeading1 = self.b('lblHeading1')
