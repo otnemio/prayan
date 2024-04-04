@@ -1,9 +1,8 @@
 import matplotlib, gi, sqlite3, os, sys, yaml, grpc, priyu_pb2, priyu_pb2_grpc
-import pandas as pd, numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.transforms as transforms
 import mplfinance as mpf
-from datetime import datetime, timezone
+from datetime import datetime, timezone, time
 from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
 from matplotlib.patches import Rectangle, Ellipse, Circle
 from gi.repository import Gtk, Gdk, GLib
@@ -115,9 +114,6 @@ class Handler():
             canvas.mpl_connect('button_release_event', self.on_release)
             srlMatPlot2.add(canvas)
             srlMatPlot2.show_all()
-        # canvas.mpl_connect('button_press_event', self._on_press)
-        # canvas.mpl_connect('motion_notify_event', self._on_motion)
-        # canvas.mpl_connect('button_release_event', self._on_release)
         
         self.update_chart()
     
@@ -153,9 +149,12 @@ class Handler():
         if self.tool['selected_circle'] is not None:
             self.tool['selected_circle'] = None
     def on_click(self, event):
-        entrySL1 = self.b('entrySL1')
+        btnSL1 = self.b('btnSL1')
+        lblSL1 = self.b('lblSL1')
         if event.button == 1:
-            entrySL1.set_text(str(int(event.ydata*20)/20.0))
+            if btnSL1.get_active():
+                lblSL1.set_text(str(int(event.ydata*20)/20.0))
+                btnSL1.set_active(False)
             self.clickX = event.xdata
             self.clickY = event.ydata
             for circle in self.tool['circles']:
@@ -275,20 +274,50 @@ class Handler():
         store.append(st1,["BEL","MIS",40])
         store.append(None,["BHEL","CNC",20])
         tree = Gtk.TreeView(model=store)
-        column1 = Gtk.TreeViewColumn("Orders")
+        column = Gtk.TreeViewColumn("Orders")
 
         tradingsymbol = Gtk.CellRendererText()
         product = Gtk.CellRendererText()
         quantity = Gtk.CellRendererText()
-        column1.pack_start(tradingsymbol, True)
-        column1.pack_start(product, True)
-        column1.pack_start(quantity, True)
-        column1.add_attribute(tradingsymbol, "text", 0)
-        column1.add_attribute(product, "text", 1)
-        column1.add_attribute(quantity, "text", 2)
+        column.pack_start(tradingsymbol, True)
+        column.pack_start(product, True)
+        column.pack_start(quantity, True)
+        column.add_attribute(tradingsymbol, "text", 0)
+        column.add_attribute(product, "text", 1)
+        column.add_attribute(quantity, "text", 2)
         
-        tree.append_column(column1)
+        tree.append_column(column)
+        boxOrders1.add(tree)
         
+        req = priyu_pb2.PRequest(msg='')
+        res = self.stub.ChildOrdersStatus(req)
+        store = Gtk.ListStore(str, int, str, str, str)
+        for row in res.childorder:
+            store.append([row.tradingsymbol, row.quantity,
+                          f"{row.p5Price/20.0:.2f}", row.status, f"{priyu_pb2.Type.Name(row.type)}"])
+        tree = Gtk.TreeView(model=store)
+        column = Gtk.TreeViewColumn("Child Orders")
+        orderno = Gtk.CellRendererText()
+        tradingsymbol = Gtk.CellRendererText()
+        quantity = Gtk.CellRendererText()
+        price = Gtk.CellRendererText()
+        price.set_property('xalign',1)
+        status = Gtk.CellRendererText()
+        type = Gtk.CellRendererText()
+        
+        column.pack_start(tradingsymbol, True)
+        column.pack_start(quantity, True)
+        column.pack_start(price, True)
+        column.pack_start(status, True)
+        column.pack_start(type, True)
+        
+        column.add_attribute(tradingsymbol, "text", 0)
+        column.add_attribute(quantity, "text", 1)
+        column.add_attribute(price, "text", 2)
+        column.add_attribute(status, "text", 3)
+        column.add_attribute(type, "text", 4)
+        
+        tree.append_column(column)
         boxOrders1.add(tree)
         boxOrders1.show_all()
 
