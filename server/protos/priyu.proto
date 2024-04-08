@@ -61,6 +61,7 @@ message ChildOrder {
   int32 quantity = 4;
   int32 p5Price = 5;
   Type type = 6;
+  google.protobuf.Timestamp childordertime = 7;
 }
 
 enum Type {

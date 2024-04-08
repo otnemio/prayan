@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from google.protobuf.timestamp_pb2 import Timestamp
 from rich.logging import RichHandler
 from concurrent import futures
-from NorenRestApiPy.NorenApi import  NorenApi
+from NorenRestApiPy.NorenApi import NorenApi
 from sharedmethods import SharedMethods
 
     
@@ -24,12 +24,16 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
         quant = []
         match request.msg:
             case 'positions':
-                if MD['df_positions'] is not None:
-                    for index, row in MD['df_positions'].iterrows():
-                        quant.append(priyu_pb2.Quant(tradingsymbol=row['tradingsymbol'],
-                                                product=row['product'],
-                                                pnl=row['pnl'],
-                                                quantity=row['quantity']))
+                if MD['paperTrading']:
+                    for key,value in MD['paperPositions'].items():
+                        print(key, value)
+                else:
+                    if MD['df_positions'] is not None:
+                        for index, row in MD['df_positions'].iterrows():
+                            quant.append(priyu_pb2.Quant(tradingsymbol=row['tradingsymbol'],
+                                                    product=row['product'],
+                                                    pnl=row['pnl'],
+                                                    quantity=row['quantity']))
                 return priyu_pb2.Quants(quant=quant)
             case 'holdings':
                 if MD['df_holdings'] is not None:
@@ -68,12 +72,15 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
     def ChildOrdersStatus(self, request, context):
         childorders = []
         for index, row in MD['df_orders'].iterrows():
+            # tm = int(datetime.strptime(row['ordertime'],'%H:%S:%M %d-%m-%Y').timestamp())
+            self.ts.FromSeconds(int(row['ordertime']))
             childorders.append(priyu_pb2.ChildOrder(orderno=row['orderno'],
                                                     tradingsymbol=row['tradingsymbol'],
                                                     status=row['status'],
                                                     type=priyu_pb2.Type.BUY if row['type']=='B' else priyu_pb2.Type.SELL,
                                                     quantity=int(row['quantity']),
-                                                    p5Price=int(20*float(row['price']))))
+                                                    p5Price=int(20*float(row['price'])),
+                                                    childordertime = self.ts))
         return priyu_pb2.ChildOrders(childorder=childorders)
     def AllOrdersStatus(self, request, context):
         try:
@@ -123,15 +130,16 @@ def serve():
     log.info("Server Started. Listening at [::]:50051")
 
 def store_orders_data(data):
-    df = {'orderno':[],'tradingsymbol':[],'quantity':[],'price':[],'status':[],'type':[]}
+    df = {'orderno':[],'tradingsymbol':[],'quantity':[],'price':[],'status':[],'type':[],'ordertime':[]}
     for row in data:
-        if row['stat']=='Ok':
+        if 'ordenttm' in row and row['stat']=='Ok': #ordenttm which one not having, figure out
             df['orderno'].append(row['norenordno'])
             df['tradingsymbol'].append(row['tsym'])
             df['quantity'].append(row['qty'])
             df['price'].append(row['prc'])
             df['status'].append(row['status'])
             df['type'].append(row['trantype'])
+            df['ordertime'].append(row['ordenttm'])
     # log.info(df)
     return pd.DataFrame(df)
 

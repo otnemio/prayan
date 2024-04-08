@@ -11,7 +11,8 @@ from sharedmethods import SharedMethods
 
 class Handler():
     def __init__(self):
-        global builder, conn
+        global builder, conn, MD
+        MD = {'childorders':[],'positions':[],'holdings':[]}
         self.stub = priyu_pb2_grpc.ChirperStub(grpc.insecure_channel('localhost:50051'))
         conn = sqlite3.connect('../collector/bhav_eq_database.db',check_same_thread=False)
         # Set the backend to GTK
@@ -102,7 +103,6 @@ class Handler():
         # canvas.set_size_request(800, 600)
         if not srlMatPlot2.get_children():
             fig, ax = plt.subplots()
-            fig.tight_layout()
             canvas = FigureCanvas(fig)  # a Gtk.DrawingArea
             self.axC = ax
             self.canvasC = canvas
@@ -155,8 +155,8 @@ class Handler():
             if btnSL1.get_active():
                 lblSL1.set_text(str(int(event.ydata*20)/20.0))
                 btnSL1.set_active(False)
-            self.clickX = event.xdata
-            self.clickY = event.ydata
+            x = event.xdata
+            y = event.ydata
             for circle in self.tool['circles']:
                 if circle.contains(event)[0]:
                     circle.set_color('red')
@@ -170,6 +170,7 @@ class Handler():
         if not self.connected:
             return
         srlMatPlot2 = self.b('scrlCurr1')
+        lblHeading1 = self.b('lblHeading1')
         if srlMatPlot2.get_children():
             req = priyu_pb2.SRequest(symbol=self.symbol,exchange='NSE')
             res = self.stub.LiveData(req)
@@ -186,17 +187,23 @@ class Handler():
             df_p = pd.DataFrame(df, index=df['time'])
             self.axC.cla()
             mpf.plot(df_p, ax=self.axC, returnfig=True, xrotation=0, style=self.chart_style)
+            for row in MD['childorders']:
+                print(row)
+                if row.tradingsymbol.split('-')[0] == lblHeading1.get_text() and row.status=='COMPLETE':
+                    tm = datetime.fromtimestamp(row.childordertime.seconds)
+                    self.create_orders_markers(x=SharedMethods.m0915(tm.hour,tm.minute),y=row.p5Price/20.0-15,
+                                               text=row.quantity, type=row.type )
             self.canvasC.draw_idle()
 
-    def create_ranged_bracket(self):
+    def create_ranged_bracket(self,x,y):
         
         updis = 1
         downdis= 0.5
         fardis = 30
-        origin = (self.clickX,self.clickY)
-        over = (self.clickX,self.clickY+updis)
-        below = (self.clickX,self.clickY-downdis)
-        far = (self.clickX+fardis,self.clickY)
+        origin = (x,y)
+        over = (x,y+updis)
+        below = (x,y-downdis)
+        far = (x+fardis,y)
         
         
         xscale, yscale = self.axC.transData.transform([1, 1]) - self.axC.transData.transform([0, 0])
@@ -225,12 +232,20 @@ class Handler():
         self.axC.add_patch(rect2)
         
         self.canvasC.draw_idle()
+    
+    def create_orders_markers(self,x,y,text,type):
+        # plt.text(x, y, text, color='red' if type else 'green',fontsize=8)
+        self.axC.annotate(text,  xy=(x, y), color='red' if type else 'green',
+                fontsize="small", weight='light',
+                horizontalalignment='center',
+                verticalalignment='center')
         
-
-    def higher(self, button):
+    def create_orders(self, button):
         self.tool = {'circles':[],'rectangles':[],'selected_circle':None}
-        self.create_ranged_bracket()
-        return
+        #fill x and y value from somewhere
+        self.create_ranged_bracket(90,240)
+    
+    def higher(self, button):
         lblHeading1 = self.b('lblHeading1')
         entrySL1 = self.b('entrySL1')
         spinPercent1 = self.b('spinPercent1')
@@ -291,10 +306,14 @@ class Handler():
         
         req = priyu_pb2.PRequest(msg='')
         res = self.stub.ChildOrdersStatus(req)
-        store = Gtk.ListStore(str, int, str, str, str)
+        MD['childorders'] = []
+        store = Gtk.ListStore(str, int, str, str, str, str)
         for row in res.childorder:
+            MD['childorders'].append(row)
+            tm = datetime.fromtimestamp(row.childordertime.seconds)
             store.append([row.tradingsymbol, row.quantity,
-                          f"{row.p5Price/20.0:.2f}", row.status, f"{priyu_pb2.Type.Name(row.type)}"])
+                          f"{row.p5Price/20.0:.2f}", row.status, f"{priyu_pb2.Type.Name(row.type)}",
+                          f"{tm.hour}:{tm.minute}:{tm.second}"])
         tree = Gtk.TreeView(model=store)
         column = Gtk.TreeViewColumn("Child Orders")
         orderno = Gtk.CellRendererText()
@@ -304,23 +323,33 @@ class Handler():
         price.set_property('xalign',1)
         status = Gtk.CellRendererText()
         type = Gtk.CellRendererText()
+        childordertime = Gtk.CellRendererText()
         
         column.pack_start(tradingsymbol, True)
         column.pack_start(quantity, True)
         column.pack_start(price, True)
         column.pack_start(status, True)
         column.pack_start(type, True)
+        column.pack_start(childordertime, True)
         
         column.add_attribute(tradingsymbol, "text", 0)
         column.add_attribute(quantity, "text", 1)
         column.add_attribute(price, "text", 2)
         column.add_attribute(status, "text", 3)
         column.add_attribute(type, "text", 4)
+        column.add_attribute(childordertime, "text", 5)
         
         tree.append_column(column)
         boxOrders1.add(tree)
+        select = tree.get_selection()
+        select.connect("changed", self.on_tree_selection_changed)
         boxOrders1.show_all()
 
+    def on_tree_selection_changed(self, selection):
+        model, treeiter = selection.get_selected()
+        if treeiter is not None:
+            print("You selected", model[treeiter][0])
+    
     def update_posholds(self):
         boxPosHold1 = self.b('boxPosHold1')
         req = priyu_pb2.PRequest(msg='positions')
