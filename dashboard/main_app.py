@@ -2,9 +2,10 @@ import matplotlib, gi, sqlite3, os, sys, yaml, grpc, priyu_pb2, priyu_pb2_grpc
 import pandas as pd
 import matplotlib.pyplot as plt
 import mplfinance as mpf
-from datetime import datetime, timezone, time
+from datetime import datetime, timezone
 from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
 from matplotlib.patches import Rectangle, Ellipse, Circle
+from matplotlib.widgets import Cursor
 from gi.repository import Gtk, Gdk, GLib
 gi.require_version("Gtk", "3.0")
 from sharedmethods import SharedMethods
@@ -237,6 +238,8 @@ class Handler():
         # plt.text(x, y, text, color='red' if type else 'green',fontsize=8)
         self.axC.annotate(text,  xy=(x, y), color='red' if type else 'green',
                 fontsize="small", weight='light',
+                # backgroundcolor='lightcoral' if type else 'lightgreen',
+                bbox=dict(facecolor='lightcoral' if type else 'lightgreen', alpha=0.4, edgecolor='black'),
                 horizontalalignment='center',
                 verticalalignment='center')
         
