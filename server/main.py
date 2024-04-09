@@ -72,8 +72,7 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
     def ChildOrdersStatus(self, request, context):
         childorders = []
         for index, row in MD['df_orders'].iterrows():
-            # tm = int(datetime.strptime(row['ordertime'],'%H:%S:%M %d-%m-%Y').timestamp())
-            self.ts.FromSeconds(int(row['ordertime']))
+            self.ts.FromSeconds(int(datetime.strptime(row['ordertime'],'%H:%M:%S %d-%m-%Y').timestamp()))
             childorders.append(priyu_pb2.ChildOrder(orderno=row['orderno'],
                                                     tradingsymbol=row['tradingsymbol'],
                                                     status=row['status'],
@@ -132,14 +131,14 @@ def serve():
 def store_orders_data(data):
     df = {'orderno':[],'tradingsymbol':[],'quantity':[],'price':[],'status':[],'type':[],'ordertime':[]}
     for row in data:
-        if 'ordenttm' in row and row['stat']=='Ok': #ordenttm which one not having, figure out
+        if row['stat']=='Ok':
             df['orderno'].append(row['norenordno'])
             df['tradingsymbol'].append(row['tsym'])
             df['quantity'].append(row['qty'])
             df['price'].append(row['prc'])
             df['status'].append(row['status'])
             df['type'].append(row['trantype'])
-            df['ordertime'].append(row['ordenttm'])
+            df['ordertime'].append(row['norentm'])
     # log.info(df)
     return pd.DataFrame(df)
 
