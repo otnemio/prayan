@@ -310,36 +310,50 @@ class Handler():
         req = priyu_pb2.PRequest(msg='')
         res = self.stub.ChildOrdersStatus(req)
         MD['childorders'] = []
-        store = Gtk.ListStore(str, int, str, str, str, str)
+        store = Gtk.ListStore(str, str, int, str, str, str)
         for row in res.childorder:
             MD['childorders'].append(row)
             tm = datetime.fromtimestamp(row.childordertime.seconds)
-            store.append([row.tradingsymbol, row.quantity,
-                          f"{row.p5Price/20.0:.2f}", row.status, f"{priyu_pb2.Type.Name(row.type)}",
-                          f"{tm.hour}:{tm.minute}:{tm.second}"])
+            match row.status:
+                case 'OPEN':
+                    status = '☐'
+                case 'COMPLETE':
+                    status = '☑'
+                case 'CANCELED':
+                    status = '⍻'
+                case 'REJECTED':
+                    status = '𐄂'
+                
+            store.append(["🟥" if row.type else "🟩",
+                          row.tradingsymbol, row.quantity,
+                          f"{row.p5Price/20.0:.2f}",
+                          status, f"{tm.hour:02}:{tm.minute:02}:{tm.second:02}"])
         tree = Gtk.TreeView(model=store)
         column = Gtk.TreeViewColumn("Child Orders")
         orderno = Gtk.CellRendererText()
         tradingsymbol = Gtk.CellRendererText()
         quantity = Gtk.CellRendererText()
+        quantity.set_property('xalign',1)
         price = Gtk.CellRendererText()
         price.set_property('xalign',1)
         status = Gtk.CellRendererText()
+        status.set_property('xalign',0.5)
         type = Gtk.CellRendererText()
+        type.set_property('xalign',0.5)
         childordertime = Gtk.CellRendererText()
         
+        column.pack_start(type, True)
         column.pack_start(tradingsymbol, True)
         column.pack_start(quantity, True)
         column.pack_start(price, True)
         column.pack_start(status, True)
-        column.pack_start(type, True)
         column.pack_start(childordertime, True)
         
-        column.add_attribute(tradingsymbol, "text", 0)
-        column.add_attribute(quantity, "text", 1)
-        column.add_attribute(price, "text", 2)
-        column.add_attribute(status, "text", 3)
-        column.add_attribute(type, "text", 4)
+        column.add_attribute(type, "text", 0)
+        column.add_attribute(tradingsymbol, "text", 1)
+        column.add_attribute(quantity, "text", 2)
+        column.add_attribute(price, "text", 3)
+        column.add_attribute(status, "text", 4)
         column.add_attribute(childordertime, "text", 5)
         
         tree.append_column(column)
@@ -351,7 +365,7 @@ class Handler():
     def on_tree_selection_changed(self, selection):
         model, treeiter = selection.get_selected()
         if treeiter is not None:
-            print("You selected", model[treeiter][0])
+            print("You selected", model[treeiter][1])
     
     def update_posholds(self):
         boxPosHold1 = self.b('boxPosHold1')
@@ -370,6 +384,7 @@ class Handler():
         tradingsymbol = Gtk.CellRendererText()
         product = Gtk.CellRendererText()
         quantity = Gtk.CellRendererText()
+        quantity.set_property('xalign',1)
         pnl = Gtk.CellRendererText()
         pnl.set_property('xalign',1)
         
@@ -398,6 +413,7 @@ class Handler():
         tradingsymbol = Gtk.CellRendererText()
         product = Gtk.CellRendererText()
         quantity = Gtk.CellRendererText()
+        quantity.set_property('xalign',1)
         column.pack_start(tradingsymbol, True)
         column.pack_start(product, True)
         column.pack_start(quantity, True)
