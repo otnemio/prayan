@@ -191,7 +191,7 @@ class Handler():
                 print(row)
                 if row.tradingsymbol.split('-')[0] == lblHeading1.get_text() and row.status=='COMPLETE':
                     tm = datetime.fromtimestamp(row.childordertime.seconds)
-                    self.create_orders_markers(x=SharedMethods.m0915(tm.hour,tm.minute),y=row.p5Price/20.0-15,
+                    self.create_orders_markers(x=SharedMethods.m0915(tm.hour,tm.minute),y=row.p5Price/20.0,
                                                text=row.quantity, type=row.type )
             self.canvasC.draw_idle()
 
