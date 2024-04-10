@@ -434,6 +434,10 @@ class ShoonyaApiPy(NorenApi):
                 retp = api.get_positions()
                 if retp:
                     MD['df_positions'] = store_positions_data(retp)
+                reto = api.get_order_book()
+                if reto:
+                    MD['df_orders'] = store_orders_data(reto)
+    
 
     def open_callback(self):
         global conn_mem
