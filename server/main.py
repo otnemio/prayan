@@ -113,8 +113,8 @@ def initialize():
     MD = {'orders':{},'cprice':{},'tradingsymbol':{},'liveTableExists':False, 'infoTableExists':False, 'loggedin':False,
           'listtokens':[],'feedopened':False,'df_orders':None, 'df_holdings':None,'df_positions':None, 'paperTrading':True,
           'paperOrders':{}, 'paperPositions':{}}
-    api = ShoonyaApiPy()
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    api = ShoonyaApiPy()
     FORMAT = "%(message)s"
     logging.basicConfig(
         level="INFO", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
@@ -164,7 +164,8 @@ def store_holdings_data(data):
 
 def shoonya(TOTP):
     api.fulllogin(TOTP)
-    
+    api.updatedata()
+
     reth = api.get_holdings()
     if reth:
         MD['df_holdings'] = store_holdings_data(reth)
@@ -310,8 +311,11 @@ def shoonya(TOTP):
 class ShoonyaApiPy(NorenApi):
     
     def __init__(self):
+        global conn, conn_mem
         NorenApi.__init__(self, host='https://api.shoonya.com/NorenWClientTP/',
                           websocket='wss://api.shoonya.com/NorenWSTP/')
+        conn = sqlite3.connect('price_detailed_history.db', check_same_thread=False)
+        conn_mem = sqlite3.connect(':memory:', check_same_thread=False)
     
     def event_handler_feed_update(self,tick_data):
         if MD['feedopened']:
@@ -347,7 +351,7 @@ class ShoonyaApiPy(NorenApi):
                 for tkn in MD['listtokens']:
                     exchange = tkn.split('|')[0]
                     token = tkn.split('|')[1]
-                    ret = api.get_time_price_series(exchange=exchange, token=token, starttime=lastBusDay.timestamp())
+                    ret = api.get_time_price_series(exchange=exchange, token=token, starttime=lastBusDay.timestamp(), interval=1)
                     for row in ret:
                         if row['stat']=='Ok':
                             tm = datetime.strptime(row['time'],'%d-%m-%Y %H:%M:%S')
@@ -438,11 +442,8 @@ class ShoonyaApiPy(NorenApi):
                 if reto:
                     MD['df_orders'] = store_orders_data(reto)
     
-
     def open_callback(self):
-        global conn_mem
         MD['feedopened'] = True
-        conn_mem = sqlite3.connect('bhav_live.db' if os.path.exists('bhav_live.db') else ':memory:', check_same_thread=False)
 
     def close_callback(self):
         MD['feedopened'] = False
@@ -469,12 +470,63 @@ class ShoonyaApiPy(NorenApi):
                         for instrument in instruments:
                             for key, value in instrument.items():
                                 for exch, token in value.items():
-                                    MD['listtokens'].append(f"{exch}|{token}")
+                                    tradingsymbol = f"{key}-EQ" if exch =='NSE' else key
+                                    MD['listtokens'].append(f"{exch}|{token}|{tradingsymbol}")
                     self.subscribe(MD['listtokens'],feed_type=2)
                     
             log.info(f"Logged in: {MD['loggedin']}")
         except Exception as e:
                 log.error(e)
+
+    def updatedata(self):
+        c = conn.cursor()
+        c.execute('''CREATE TABLE IF NOT EXISTS price (
+                        token INTEGER,
+                        year INTEGER,
+                        month INTEGER,
+                        day INTEGER,
+                        minute INTEGER,
+                        openp INTEGER,
+                        highp INTEGER,
+                        lowp INTEGER,
+                        closep INTEGER,
+                        volume INTEGER,
+                        PRIMARY KEY (token,minute,day,month,year)
+                        )''')
+        conn.commit()
+        lastBusDay = datetime.today()
+        lastBusDay = lastBusDay.replace(year=2024,month=1,day=1)    
+        for tkn in MD['listtokens']:
+            exchange = tkn.split('|')[0]
+            token = tkn.split('|')[1]
+            tradingsymbol = tkn.split('|')[2]
+            if exchange =='NSE':
+                c.execute('SELECT COUNT(*) FROM price WHERE token=?', (token,))
+                if c.fetchone()[0]>0:
+                    # Yet to be corrected
+                    log.info(f"Price data is already available for {tradingsymbol}. No need to download.")
+                    continue   
+                else:
+                    log.info(f"Price Data for {tradingsymbol} is being downloaded.")
+                    ret = api.get_time_price_series(exchange=exchange, token=token, starttime=lastBusDay.timestamp(), interval=1)
+            else:
+                continue
+            for row in ret:
+                if row['stat']=='Ok':
+                    # log.info(row)
+                    tm = datetime.strptime(row['time'],'%d-%m-%Y %H:%M:%S')
+                    minute = SharedMethods.m0915(tm.hour,tm.minute)
+                    c.execute('''INSERT OR IGNORE INTO price (token, year, month, day, minute, openp, highp, lowp, closep, volume) VALUES 
+                              (?,?,?,?,?,?,?,?,?,?)''',
+                        (token,tm.year,tm.month,tm.day,minute,
+                        SharedMethods.rp(row['into']),
+                        SharedMethods.rp(row['inth']),
+                        SharedMethods.rp(row['intl']),
+                        SharedMethods.rp(row['intc']),
+                        int(row['intv'])))
+            conn.commit()
+            log.info(f"Price Data for {tradingsymbol} downloaded successfully.")
+
 
     def placeorder(self,bos,tsym,qty,ptype,rmrk,prc=None,trgprc=None):
         if MD['paperTrading']:

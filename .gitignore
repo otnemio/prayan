@@ -7,3 +7,4 @@ test/*
 analyser/*
 */__pycache__/*
 bhav_live.db
+server/price_detailed_history.db
