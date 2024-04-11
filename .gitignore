@@ -2,9 +2,7 @@ priyu_pb2_grpc.py
 priyu_pb2.py
 cred.yaml
 app.glade~
-bhav_eq_database.db
 test/*
 analyser/*
 */__pycache__/*
-bhav_live.db
-price_detailed_history.db
+*.db
