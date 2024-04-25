@@ -43,22 +43,21 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
                                                 quantity=row['quantity']))
                 return priyu_pb2.Quants(quant=quant)
     def LiveData(self, request, context):
-        tradingsymbol=f"{request.symbol}-EQ" if request.exchange=="NSE" else f"{request.symbol}"
         tohlcv = []
-        try:
-            c =conn_mem.cursor()
+        c =conn_mem.cursor()
+        c.execute('''SELECT count(*) FROM sqlite_master WHERE type='table' AND name='live';''')
+        if c.fetchone()[0]==1:
+            tradingsymbol=f"{request.symbol}-EQ" if request.exchange=="NSE" else f"{request.symbol}"
             c.execute('''SELECT * FROM live WHERE tradingsymbol = ?''',(tradingsymbol,))
             rows = c.fetchall()
             for row in rows:
                 self.ts.FromDatetime(SharedMethods.tm0915(row[1]))
                 tohlcv.append(priyu_pb2.OHLCV(time=self.ts,
-                                              pOpen=row[2],
-                                              pHigh=row[3],
-                                              pClose=row[5],
-                                              pLow=row[4],
-                                              volume=row[6]))
-        except Exception as e:
-            log.error("Error fetching live data.")
+                                            pOpen=row[2],
+                                            pHigh=row[3],
+                                            pClose=row[5],
+                                            pLow=row[4],
+                                            volume=row[6]))
         return priyu_pb2.OHLCVs(ohlcv=tohlcv)
         
             
@@ -71,15 +70,16 @@ class Servicer(priyu_pb2_grpc.ChirperServicer):
     
     def ChildOrdersStatus(self, request, context):
         childorders = []
-        for index, row in MD['df_orders'].iterrows():
-            self.ts.FromSeconds(int(datetime.strptime(row['ordertime'],'%H:%M:%S %d-%m-%Y').timestamp()))
-            childorders.append(priyu_pb2.ChildOrder(orderno=row['orderno'],
-                                                    tradingsymbol=row['tradingsymbol'],
-                                                    status=row['status'],
-                                                    type=priyu_pb2.Type.BUY if row['type']=='B' else priyu_pb2.Type.SELL,
-                                                    quantity=int(row['quantity']),
-                                                    p5Price=int(20*float(row['price'])),
-                                                    childordertime = self.ts))
+        if MD['df_orders'] is not None:
+            for index, row in MD['df_orders'].iterrows():
+                self.ts.FromSeconds(int(datetime.strptime(row['ordertime'],'%H:%M:%S %d-%m-%Y').timestamp()))
+                childorders.append(priyu_pb2.ChildOrder(orderno=row['orderno'],
+                                                        tradingsymbol=row['tradingsymbol'],
+                                                        status=row['status'],
+                                                        type=priyu_pb2.Type.BUY if row['type']=='B' else priyu_pb2.Type.SELL,
+                                                        quantity=int(row['quantity']),
+                                                        p5Price=int(20*float(row['price'])),
+                                                        childordertime = self.ts))
         return priyu_pb2.ChildOrders(childorder=childorders)
     def AllOrdersStatus(self, request, context):
         try:
@@ -146,7 +146,6 @@ def store_positions_data(data):
     df = {'tradingsymbol':[],'product':[],'quantity':[],'pnl':[]}
     for row in data:
         if row['stat']=='Ok':
-            log.info(row)
             df['tradingsymbol'].append(row['tsym'])
             df['product'].append(row['s_prdt_ali'])
             df['quantity'].append(int(row['netqty']))
@@ -158,13 +157,16 @@ def store_holdings_data(data):
     for row in data:
         if row['stat']=='Ok':
             df['tradingsymbol'].append(row['exch_tsym'][0]['tsym'])
-            df['product'].append(row['s_prdt_ali'])  
-            df['quantity'].append(max(int(row['dpqty']),int(row['npoadqty'])) if 'dpqty' in row else int(row['npoadqty']))
+            df['product'].append(row['s_prdt_ali'])
+            row.setdefault('dpqty',0)
+            row.setdefault('npoadqty',0)
+            row.setdefault('brkcolqty',0)
+            df['quantity'].append(max(int(row['dpqty']),int(row['npoadqty'])+int(row['brkcolqty'])))
     return pd.DataFrame(df)
 
 def shoonya(TOTP):
     api.fulllogin(TOTP)
-    api.updatedata()
+    # api.updatedata()
 
     reth = api.get_holdings()
     if reth:
@@ -424,7 +426,6 @@ class ShoonyaApiPy(NorenApi):
 
     def event_handler_order_update(self,tick_data):
         if MD['feedopened']:
-            # log.info(f"order update {tick_data}")
             if MD['df_orders']['orderno'].str.contains(tick_data['norenordno']).any():
                 MD['df_orders'].loc[MD['df_orders']['orderno']==tick_data['norenordno'],'status']=tick_data['status']
             else:
@@ -472,9 +473,10 @@ class ShoonyaApiPy(NorenApi):
                                 for exch, token in value.items():
                                     tradingsymbol = f"{key}-EQ" if exch =='NSE' else key
                                     MD['listtokens'].append(f"{exch}|{token}|{tradingsymbol}")
-                    self.subscribe(MD['listtokens'],feed_type=2)
+                    self.subscribe([i.rsplit('|', 1)[0] for i in MD['listtokens']],feed_type=2)
                     
             log.info(f"Logged in: {MD['loggedin']}")
+            
         except Exception as e:
                 log.error(e)
 

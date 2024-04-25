@@ -21,7 +21,6 @@ class Handler():
         self.fetch_instruments()
         self.connected = False
         self.try_connecting()
-        self.refresh(None)
     
     def try_connecting(self):
         req = priyu_pb2.PRequest(msg='Connect')
@@ -426,6 +425,8 @@ class Handler():
         boxPosHold1.show_all()
 
     def refresh(self, button):
+        if not self.connected:
+            self.try_connecting()
         self.update_chart()
         self.update_posholds()
         self.update_orders()
