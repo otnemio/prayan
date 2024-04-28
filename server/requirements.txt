@@ -4,3 +4,5 @@ pandas
 rich
 websocket
 websocket-client
+requests
+PyYAML
