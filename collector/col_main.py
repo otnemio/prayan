@@ -66,8 +66,9 @@ def download(single_date):
         print("Data successfully updated.")
 
 def download_data():
+    today = datetime.today()
     start_date = date(2024, 3, 1)
-    end_date = date(2024, 3, 14)
+    end_date = date(today.year, today.month, today.day)
     for single_date in daterange(start_date, end_date):
         download(single_date)
 
