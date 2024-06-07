@@ -51,6 +51,47 @@ def Login():
         }
         return jsonify(data)
 
+@app.route('/holdings', methods = ['GET']) 
+def Holdings(): 
+    if(request.method == 'GET'):
+        if hasattr(api,'_NorenApi__username'):
+            status = 'OK'
+            ret = api.get_holdings()
+            if not ret:
+                    status = 'NOK'
+                    msg = "Problemia while trying to fetch holdings."
+            elif ret[0]['stat']=='Ok':
+                    msg = ret
+        else:
+            status = 'NOK'
+            msg = "Not logged in."
+        data = { 
+            'Status' : status,
+            'Msg' : msg, 
+        }
+        return jsonify(data)
+
+@app.route('/limits', methods = ['GET']) 
+def Limits(): 
+    if(request.method == 'GET'):
+        if hasattr(api,'_NorenApi__username'):
+            status = 'OK'
+            ret = api.get_limits()
+            if not ret:
+                    status = 'NOK'
+                    msg = "Problemia while trying to fetch limits."
+            elif ret['stat']=='Ok':
+                    msg = ret
+        else:
+            status = 'NOK'
+            msg = "Not logged in."
+        data = { 
+            'Status' : status,
+            'Msg' : msg, 
+        }
+        return jsonify(data)
+
+
 class ShoonyaApiPy(NorenApi):
     
     def __init__(self):
