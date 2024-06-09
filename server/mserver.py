@@ -1,8 +1,8 @@
-from rich.logging import RichHandler
-from NorenRestApiPy.NorenApi import NorenApi
+from shoonya import ShoonyaApiPy
+from logger import logger
 from flask import Flask,jsonify,request 
 from waitress import serve
-import os, logging, yaml, sys
+import os, yaml, sys
 
 app =   Flask(__name__) 
   
@@ -45,6 +45,12 @@ def Login():
                     msg = "Problemia while trying to log in."
                 elif ret['stat']=='Ok':
                     msg = "Login successful."
+                    api.start_websocket(
+                            subscribe_callback=api.event_handler_feed_update, 
+                            order_update_callback=api.event_handler_order_update,
+                            socket_open_callback=api.open_callback,
+                            socket_close_callback=api.close_callback
+                        )
         data = { 
             'Status' : status,
             'Msg' : msg, 
@@ -91,22 +97,12 @@ def Limits():
         }
         return jsonify(data)
 
-
-class ShoonyaApiPy(NorenApi):
-    
-    def __init__(self):
-        NorenApi.__init__(self, host='https://api.shoonya.com/NorenWClientTP/',
-                          websocket='wss://api.shoonya.com/NorenWSTP/')
-
 def initialize():  
     global log, api 
-    log = logging.getLogger("rich")
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    log = logger()
     api = ShoonyaApiPy()
-    FORMAT = "%(message)s"
-    logging.basicConfig(
-        level="INFO", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
-    )
+
 
 if __name__=='__main__':
     # app.run(debug=True)
