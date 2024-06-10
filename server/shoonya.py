@@ -161,7 +161,5 @@ class Instrument():
         self.exch = exch.upper()
         self.tradename =  name if self.exch !='NSE' else f'{name}-EQ'  
     
-    @property
-    def spot(self):
-        return ShoonyaApi.self.MD["cprice"][self.tradename]
+    
     

@@ -109,7 +109,24 @@ def Btst():
             msg = "Not logged in."
         data = { 
             'Status' : status,
-            'Msg' : msg, 
+            'Msg' : msg,
+        }
+        return jsonify(data)
+
+@app.route('/live', methods = ['GET']) 
+def Live(): 
+    if(request.method == 'GET'):
+        if hasattr(api,'_NorenApi__username'):
+            status = 'OK'
+            s = request.args.get('s').upper()
+            ins = Instrument(s)
+            msg = api.MD["cprice"][ins.tradename]
+        else:
+            status = 'NOK'
+            msg = "Not logged in."
+        data = { 
+            'Status' : status,
+            'Msg' : msg,
         }
         return jsonify(data)
 
