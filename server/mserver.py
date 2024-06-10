@@ -1,8 +1,8 @@
-from shoonya import ShoonyaApiPy
+from shoonya import ShoonyaApi, Instrument
 from logger import logger
 from flask import Flask,jsonify,request 
 from waitress import serve
-import os, yaml, sys
+import os, yaml, sys, threading, datetime, time
 
 app =   Flask(__name__) 
   
@@ -97,14 +97,40 @@ def Limits():
         }
         return jsonify(data)
 
+@app.route('/btst', methods = ['GET']) 
+def Btst(): 
+    if(request.method == 'GET'):
+        if hasattr(api,'_NorenApi__username'):
+            status = 'OK'
+            s = request.args.get('s').upper()
+            msg = f'Buy levels submitted for {s} which are {request.args.get("l")}.'
+        else:
+            status = 'NOK'
+            msg = "Not logged in."
+        data = { 
+            'Status' : status,
+            'Msg' : msg, 
+        }
+        return jsonify(data)
+
 def initialize():  
     global log, api 
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     log = logger()
-    api = ShoonyaApiPy()
+    api = ShoonyaApi()
 
+def trade():
+    log.info("Trading")
+    while True:
+        now = datetime.datetime.now()
+        time.sleep(1)
+        # print(s.spot)
+        
 
 if __name__=='__main__':
     # app.run(debug=True)
     initialize()
-    serve(app,host="0.0.0.0",port=sys.argv[1] if len(sys.argv)>1 else 8081)
+    t = threading.Thread(target=trade,args=())
+    t.start()
+    serve(app=app,host="0.0.0.0", port=sys.argv[1] if len(sys.argv)>1 else 8081)
+    t.join()

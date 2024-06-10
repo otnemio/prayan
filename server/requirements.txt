@@ -6,3 +6,6 @@ websocket
 websocket-client
 requests
 PyYAML
+flask
+waitress
+TA-Lib
