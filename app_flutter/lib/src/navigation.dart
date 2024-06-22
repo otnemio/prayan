@@ -115,21 +115,21 @@ Widget mPage(String titleText, String data) {
 
 refresh(context, index) async {
   var rng = Random();
-  switch (index) {
-    case 3:
-      var h = await getHoldings();
-      Logger().d(h);
-  }
+  // switch (index) {
+  //   case 3:
+  //   // var h = await getHoldings();
+  //   // Logger().d(h);
+  // }
   int i = rng.nextInt(100);
   // ScaffoldMessenger.of(context).showSnackBar(
   //     SnackBar(content: Text('Data reloaded. Data for $index is $i')));
   return "Data for $index is $i";
 }
 
-Future<List<(String, int)>> getHoldings() async {
-  var url = Uri.http('192.168.29.6:8080', '/holdings');
-  final response = await http.get(url);
-  var jObj = jsonDecode(response.body);
-  if (jObj['Status'] == 'OK') {}
-  return [("JIOFIN", 100), ("BEL", 110)];
-}
+// Future<List<(String, int)>> getHoldings() async {
+//   var url = Uri.http('192.168.29.6:8080', '/holdings');
+//   final response = await http.get(url);
+//   var jObj = jsonDecode(response.body);
+//   if (jObj['Status'] == 'OK') {}
+//   return [("JIOFIN", 100), ("BEL", 110)];
+// }
