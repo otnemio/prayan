@@ -1,16 +1,15 @@
 import 'dart:convert';
-import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 
-class YellowBird extends StatefulWidget {
-  const YellowBird({super.key});
+class Settings extends StatefulWidget {
+  const Settings({super.key});
 
   @override
-  State<YellowBird> createState() => _YellowBirdState();
+  State<Settings> createState() => _SettingsState();
 }
 
-class _YellowBirdState extends State<YellowBird> {
+class _SettingsState extends State<Settings> {
   String status = '--';
   @override
   Widget build(BuildContext context) {
@@ -30,7 +29,7 @@ class _YellowBirdState extends State<YellowBird> {
                   });
                 });
               },
-              child: const Text('Enabled'),
+              child: const Text('Login Status'),
             ),
           ),
           Container(

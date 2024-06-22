@@ -95,9 +95,9 @@ Widget mPage(String titleText, String data) {
     case 'Watchlist':
       return mDash();
     case 'Portfolio':
-      return mPortfolio();
+      return const Portfolio();
     case 'Settings':
-      return const YellowBird();
+      return const Settings();
     default:
       return Card(
         shadowColor: Colors.transparent,
