@@ -97,7 +97,7 @@ Widget mPage(String titleText, String data) {
     case 'Portfolio':
       return mPortfolio();
     case 'Settings':
-      return mSettings();
+      return const YellowBird();
     default:
       return Card(
         shadowColor: Colors.transparent,
