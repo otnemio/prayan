@@ -39,6 +39,7 @@ class _PortfolioState extends State<Portfolio> {
                   SizedBox(
                     height: 120,
                     child: Card(
+                      margin: EdgeInsets.only(left: 8, right: 8, top: 4),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -73,20 +74,60 @@ class _PortfolioState extends State<Portfolio> {
                   Expanded(
                     child: ListView.separated(
                         padding: const EdgeInsets.all(8),
-                        itemCount: holdings.length,
+                        itemCount: holdings.length + 3,
                         separatorBuilder: (BuildContext context, int index) =>
-                            const Divider(),
+                            const Divider(
+                              height: 1,
+                            ),
                         itemBuilder: (BuildContext context, int index) {
-                          return SizedBox(
+                          if (index == 0 || index == holdings.length + 2) {
+                            return const SizedBox.shrink();
+                          }
+                          if (index == 1) {
+                            return Container(
+                              color: const Color.fromARGB(255, 247, 220, 235),
+                              height: 44,
+                              child: const Column(children: [
+                                Row(children: [
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: SizedBox(
+                                        child: Text(
+                                      "SYMBOL",
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold),
+                                    )),
+                                  ),
+                                ]),
+                                Row(
+                                  children: [
+                                    Text("Qty @ Avg"),
+                                  ],
+                                )
+                              ]),
+                            );
+                          }
+                          return Container(
+                            margin: EdgeInsets.only(top: 8),
                             height: 50,
                             child: Column(children: [
+                              Row(children: [
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: SizedBox(
+                                      child: Text(
+                                    holdings[index - 2].$1,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold),
+                                  )),
+                                ),
+                              ]),
                               Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    Text(holdings[index].$1),
-                                    Text('${holdings[index].$2}'),
-                                  ]),
+                                children: [
+                                  Text(
+                                      '${holdings[index - 2].$2} @ ${holdings[index - 2].$3}'),
+                                ],
+                              )
                             ]),
                           );
                         }),
@@ -100,6 +141,7 @@ class _PortfolioState extends State<Portfolio> {
                   SizedBox(
                     height: 120,
                     child: Card(
+                      margin: EdgeInsets.only(left: 8, right: 8, top: 4),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
