@@ -9,7 +9,11 @@ class Portfolio extends StatefulWidget {
 }
 
 class _PortfolioState extends State<Portfolio> {
-  String status = '--';
+  List<(String, int, double)> holdings = [
+    ('BEL', 50, 284.3),
+    ('ZOMATO', 120, 171.1),
+    ('JIOFIN', 150, 254.7)
+  ];
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -66,7 +70,27 @@ class _PortfolioState extends State<Portfolio> {
                       ),
                     ),
                   ),
-                  Expanded(child: mListView()),
+                  Expanded(
+                    child: ListView.separated(
+                        padding: const EdgeInsets.all(8),
+                        itemCount: holdings.length,
+                        separatorBuilder: (BuildContext context, int index) =>
+                            const Divider(),
+                        itemBuilder: (BuildContext context, int index) {
+                          return SizedBox(
+                            height: 50,
+                            child: Column(children: [
+                              Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    Text(holdings[index].$1),
+                                    Text('${holdings[index].$2}'),
+                                  ]),
+                            ]),
+                          );
+                        }),
+                  ),
                 ],
               ),
             ),
@@ -103,7 +127,19 @@ class _PortfolioState extends State<Portfolio> {
                       ),
                     ),
                   ),
-                  Expanded(child: mListView()),
+                  Expanded(
+                    child: ListView.builder(
+                        padding: const EdgeInsets.all(8),
+                        itemCount: entries.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          return Container(
+                            height: 50,
+                            color: Colors.amber[colorCodes[index]],
+                            child:
+                                Center(child: Text('Entry ${entries[index]}')),
+                          );
+                        }),
+                  ),
                 ],
               ),
             ),
@@ -114,30 +150,20 @@ class _PortfolioState extends State<Portfolio> {
   }
 }
 
-final List<String> entries = <String>['A', 'B', 'C'];
-final List<int> colorCodes = <int>[600, 500, 100];
+final List<String> entries = <String>['A', 'B', 'C', 'D', 'E'];
+final List<int> colorCodes = <int>[600, 500, 100, 200, 300];
 
 Widget mListView() {
-  return ListView(
-    padding: const EdgeInsets.all(8),
-    children: <Widget>[
-      Container(
-        height: 50,
-        color: Colors.amber[600],
-        child: const Center(child: Text('Entry A')),
-      ),
-      Container(
-        height: 50,
-        color: Colors.amber[500],
-        child: const Center(child: Text('Entry B')),
-      ),
-      Container(
-        height: 50,
-        color: Colors.amber[100],
-        child: const Center(child: Text('Entry C')),
-      ),
-    ],
-  );
+  return ListView.builder(
+      padding: const EdgeInsets.all(8),
+      itemCount: entries.length,
+      itemBuilder: (BuildContext context, int index) {
+        return Container(
+          height: 50,
+          color: Colors.amber[colorCodes[index]],
+          child: Center(child: Text('Entry ${entries[index]}')),
+        );
+      });
 }
 
 Widget priceText(text, {bool darkText = false, double fontSize = 22}) {

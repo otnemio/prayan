@@ -14,7 +14,7 @@ class _SettingsState extends State<Settings> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Color.fromARGB(139, 90, 81, 11),
+      color: Color.fromARGB(255, 255, 255, 255),
       child: ListView(
         padding: const EdgeInsets.all(8),
         children: <Widget>[
