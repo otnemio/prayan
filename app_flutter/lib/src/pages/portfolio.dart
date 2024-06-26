@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 
@@ -39,7 +41,7 @@ class _PortfolioState extends State<Portfolio> {
                   SizedBox(
                     height: 120,
                     child: Card(
-                      margin: EdgeInsets.only(left: 8, right: 8, top: 4),
+                      margin: const EdgeInsets.only(left: 8, right: 8, top: 4),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -108,7 +110,7 @@ class _PortfolioState extends State<Portfolio> {
                             );
                           }
                           return Container(
-                            margin: EdgeInsets.only(top: 8),
+                            margin: const EdgeInsets.only(top: 8),
                             height: 50,
                             child: Column(children: [
                               Row(children: [
@@ -141,7 +143,7 @@ class _PortfolioState extends State<Portfolio> {
                   SizedBox(
                     height: 120,
                     child: Card(
-                      margin: EdgeInsets.only(left: 8, right: 8, top: 4),
+                      margin: const EdgeInsets.only(left: 8, right: 8, top: 4),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -221,4 +223,11 @@ Widget priceText(text, {bool darkText = false, double fontSize = 22}) {
       fontSize: fontSize,
     ),
   );
+}
+
+Future<String> getHoldings() async {
+  var url = Uri.http('192.168.29.6:8080', '/holdings');
+  final response = await http.get(url);
+  var jObj = jsonDecode(response.body);
+  return jObj['Msg'];
 }

@@ -1,7 +1,3 @@
-import 'dart:async';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:logger/logger.dart';
 import 'package:flutter/material.dart';
 import 'menu.dart';
 import 'dart:math';
@@ -92,12 +88,14 @@ Widget mScaffold(context, String titleText, String data) {
 
 Widget mPage(String titleText, String data) {
   switch (titleText) {
-    case 'Watchlist':
-      return mDash();
+    case 'Dashboard':
+      return const Dashboard();
     case 'Portfolio':
       return const Portfolio();
+
     case 'Settings':
       return const Settings();
+
     default:
       return Card(
         shadowColor: Colors.transparent,
@@ -125,11 +123,3 @@ refresh(context, index) async {
   //     SnackBar(content: Text('Data reloaded. Data for $index is $i')));
   return "Data for $index is $i";
 }
-
-// Future<List<(String, int)>> getHoldings() async {
-//   var url = Uri.http('192.168.29.6:8080', '/holdings');
-//   final response = await http.get(url);
-//   var jObj = jsonDecode(response.body);
-//   if (jObj['Status'] == 'OK') {}
-//   return [("JIOFIN", 100), ("BEL", 110)];
-// }
