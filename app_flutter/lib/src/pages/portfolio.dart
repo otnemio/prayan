@@ -1,6 +1,4 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
+import '../common/methods.dart';
 import 'package:flutter/material.dart';
 
 class Portfolio extends StatefulWidget {
@@ -208,26 +206,4 @@ Widget mListView() {
           child: Center(child: Text('Entry ${entries[index]}')),
         );
       });
-}
-
-Widget priceText(text, {bool darkText = false, double fontSize = 22}) {
-  var formatter = NumberFormat('#,##,000.00');
-  return Text(
-    formatter.format(text),
-    style: TextStyle(
-      color: darkText
-          ? Colors.black
-          : text < 0
-              ? Colors.red
-              : Colors.green,
-      fontSize: fontSize,
-    ),
-  );
-}
-
-Future<String> getHoldings() async {
-  var url = Uri.http('192.168.29.6:8080', '/holdings');
-  final response = await http.get(url);
-  var jObj = jsonDecode(response.body);
-  return jObj['Msg'];
 }

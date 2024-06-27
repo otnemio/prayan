@@ -92,7 +92,6 @@ Widget mPage(String titleText, String data) {
       return const Dashboard();
     case 'Portfolio':
       return const Portfolio();
-
     case 'Settings':
       return const Settings();
 
