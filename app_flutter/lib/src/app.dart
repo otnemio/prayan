@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'navigation.dart';
+import 'pages/splash_screen.dart';
 
 class MainApp extends StatelessWidget {
   const MainApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const NavigationWidget();
+    return const MaterialApp(
+      home: Splash(),
+    );
   }
 }

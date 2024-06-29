@@ -1,6 +1,3 @@
-import 'dart:async';
-import 'dart:ffi';
-
 import '../common/methods.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -16,6 +13,7 @@ class _DashboardState extends State<Dashboard> {
   final String assetG = 'assets/ganesh-ji.svg';
   final String assetL = 'assets/lakshmi-ji.svg';
   late String cash = '--', cbu = '--', coll = '--', avl = '--';
+  late double gl = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -83,29 +81,30 @@ class _DashboardState extends State<Dashboard> {
             Text("ॐ महा लक्ष्मी नमो नमः!!")
           ],
         ),
-        Text(
-          '''
------------------------------------------
-    Equity
-    ------
-    Invested            : 12,570.50
-    Current             : 18,540.60
-    Gain/Loss           : 1,021.00
+        Card(
+            color: Color.fromARGB(255, 230, 230, 230),
+            child: Text(
+              '''
+---------------------------------------
+
+ Equity
+    Invested         : 12,570.50
+    Current          : 18,540.60
+    Gain/Loss        : 1,021.00
     
-    Margin
-    ------
-    Available           : $avl
-            Cash        : $cash
-            Collateral  : $coll
-    Used                :
+ Margin
+    Available        : $avl
+          Cash       : $cash
+          Collateral : $coll
+    Used             :
     
-    MTM
-    ------
-    PnL                 :
------------------------------------------
+ MTM
+    PnL              :
+
+---------------------------------------
 ''',
-          style: const TextStyle(fontFamily: "monospace"),
-        ),
+              style: const TextStyle(fontFamily: "monospace"),
+            )),
       ]),
     );
   }
