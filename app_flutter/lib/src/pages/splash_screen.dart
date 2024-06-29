@@ -47,7 +47,7 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
               color: Colors.black,
             ),
             SizedBox(height: 20),
-            Text('Welcome to Shoonya')
+            Text('Get ready to trade and invest.')
           ],
         ),
       ),
