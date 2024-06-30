@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'menu.dart';
-import 'dart:math';
 import 'pages/dashboard.dart';
 import 'pages/portfolio.dart';
 import 'pages/settings.dart';

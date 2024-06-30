@@ -10,37 +10,41 @@ class Settings extends StatefulWidget {
 }
 
 class _SettingsState extends State<Settings> {
-  String status = '--';
+  String serverstatus = '--', loginstatus = '--';
+
+  @override
+  void initState() {
+    super.initState();
+    getServerStatus().then((val) {
+      setState(() {
+        serverstatus = val;
+      });
+    });
+    if (serverstatus != 'NOK') {
+      getLoginStatus().then((val) {
+        setState(() {
+          loginstatus = val;
+        });
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Color.fromARGB(255, 255, 255, 255),
+      color: const Color.fromARGB(255, 255, 255, 255),
       child: ListView(
         padding: const EdgeInsets.all(8),
         children: <Widget>[
           Container(
             height: 50,
-            color: Colors.amber[600],
-            child: ElevatedButton(
-              onPressed: () {
-                getStatus().then((val) {
-                  setState(() {
-                    status = val;
-                  });
-                });
-              },
-              child: const Text('Login Status'),
-            ),
-          ),
-          Container(
-            height: 50,
             color: Colors.amber[500],
-            child: Center(child: Text(status)),
+            child: Center(child: Text(serverstatus)),
           ),
           Container(
             height: 50,
             color: Colors.amber[100],
-            child: const Center(child: Text('Entry C')),
+            child: Center(child: Text(loginstatus)),
           ),
         ],
       ),
@@ -86,9 +90,20 @@ Widget mListViewSettings() {
   );
 }
 
-Future<String> getStatus() async {
+Future<String> getLoginStatus() async {
   var url = Uri.http('192.168.29.6:8080', '/loggedin');
   final response = await http.get(url);
   var jObj = jsonDecode(response.body);
   return jObj['Msg'];
+}
+
+Future<String> getServerStatus() async {
+  try {
+    var url = Uri.http('192.168.29.6:8080', '/');
+    final response = await http.get(url);
+    var jObj = jsonDecode(response.body);
+    return jObj['Msg'];
+  } catch (e) {
+    return 'NOK';
+  }
 }
