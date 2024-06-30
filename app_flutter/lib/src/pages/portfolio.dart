@@ -39,6 +39,7 @@ class _PortfolioState extends State<Portfolio> {
                   SizedBox(
                     height: 120,
                     child: Card(
+                      color: const Color.fromARGB(255, 255, 229, 229),
                       margin: const EdgeInsets.only(left: 8, right: 8, top: 4),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -141,6 +142,7 @@ class _PortfolioState extends State<Portfolio> {
                   SizedBox(
                     height: 120,
                     child: Card(
+                      color: const Color.fromARGB(255, 255, 229, 229),
                       margin: const EdgeInsets.only(left: 8, right: 8, top: 4),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,

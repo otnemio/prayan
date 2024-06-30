@@ -14,18 +14,16 @@ class NavigationWidget extends StatefulWidget {
 
 class _NavigationWidgetState extends State<NavigationWidget> {
   int currentPageIndex = 0;
-  String data = '';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       bottomNavigationBar: NavigationBar(
-        backgroundColor: Color.fromARGB(255, 194, 218, 233),
-        onDestinationSelected: (int index) async {
+        backgroundColor: Color.fromARGB(255, 187, 211, 255),
+        onDestinationSelected: (int index) {
           setState(() {
             currentPageIndex = index;
           });
-          data = await refresh(context, index);
         },
         selectedIndex: currentPageIndex,
         destinations: const <Widget>[
@@ -59,18 +57,18 @@ class _NavigationWidgetState extends State<NavigationWidget> {
       body: SafeArea(
         child: <Widget>[
           /// Home page
-          mScaffold(context, 'Watchlist', data),
-          mScaffold(context, 'Orders', data),
-          mScaffold(context, 'Dashboard', data),
-          mScaffold(context, 'Portfolio', data),
-          mScaffold(context, 'Settings', data),
+          mScaffold(context, 'Watchlist'),
+          mScaffold(context, 'Orders'),
+          mScaffold(context, 'Dashboard'),
+          mScaffold(context, 'Portfolio'),
+          mScaffold(context, 'Settings'),
         ][currentPageIndex],
       ),
     );
   }
 }
 
-Widget mScaffold(context, String titleText, String data) {
+Widget mScaffold(context, String titleText) {
   return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -84,10 +82,10 @@ Widget mScaffold(context, String titleText, String data) {
         ),
         title: Text(titleText),
       ),
-      body: mPage(titleText, data));
+      body: mPage(titleText));
 }
 
-Widget mPage(String titleText, String data) {
+Widget mPage(String titleText) {
   switch (titleText) {
     case 'Dashboard':
       return const Dashboard();
@@ -97,29 +95,16 @@ Widget mPage(String titleText, String data) {
       return const Settings();
 
     default:
-      return Card(
+      return const Card(
         shadowColor: Colors.transparent,
-        margin: const EdgeInsets.all(8.0),
+        margin: EdgeInsets.all(8.0),
         child: SizedBox.expand(
           child: Center(
             child: Text(
-              data,
+              "Hello",
             ),
           ),
         ),
       );
   }
-}
-
-refresh(context, index) async {
-  var rng = Random();
-  // switch (index) {
-  //   case 3:
-  //   // var h = await getHoldings();
-  //   // Logger().d(h);
-  // }
-  int i = rng.nextInt(100);
-  // ScaffoldMessenger.of(context).showSnackBar(
-  //     SnackBar(content: Text('Data reloaded. Data for $index is $i')));
-  return "Data for $index is $i";
 }

@@ -16,6 +16,28 @@ class _DashboardState extends State<Dashboard> {
   late double gl = 0;
 
   @override
+  void initState() {
+    super.initState();
+    getLimits().then((val) {
+      setState(() {
+        if (val['Msg'].containsKey('cash')) {
+          cash = displayAmt(val['Msg']['cash']);
+        }
+        if (val['Msg'].containsKey('collateral')) {
+          coll = displayAmt(val['Msg']['collateral']);
+        }
+        if (val['Msg'].containsKey('cbu')) {
+          cbu = displayAmt(val['Msg']['cbu']);
+        }
+
+        double avlAmt = double.parse(val['Msg']['cash']) +
+            double.parse(val['Msg']['collateral']);
+        avl = displayAmt(avlAmt.toString());
+      });
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SizedBox.expand(
       child: Column(children: [
@@ -23,46 +45,18 @@ class _DashboardState extends State<Dashboard> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Card(
-              color: const Color.fromARGB(255, 240, 240, 240),
-              child: GestureDetector(
-                onTap: () {
-                  getLimits().then((val) {
-                    setState(() {
-                      if (val['Msg'].containsKey('cash')) {
-                        cash = displayAmt(val['Msg']['cash']);
-                      }
-                      if (val['Msg'].containsKey('collateral')) {
-                        coll = displayAmt(val['Msg']['collateral']);
-                      }
-                      if (val['Msg'].containsKey('cbu')) {
-                        cbu = displayAmt(val['Msg']['cbu']);
-                      }
-
-                      double avlAmt = double.parse(val['Msg']['cash']) +
-                          double.parse(val['Msg']['collateral']);
-                      avl = displayAmt(avlAmt.toString());
-                    });
-                  });
-                  getHoldings().then((val) {
-                    setState(() {
-                      for (var i = 0; i < val['Msg'].length; i++) {
-                        print(val['Msg'][i]);
-                      }
-                    });
-                  });
-                },
-                child: SvgPicture.asset(
-                  assetG,
-                  colorFilter: const ColorFilter.mode(
-                      Color.fromARGB(255, 50, 50, 255), BlendMode.srcIn),
-                  width: 100,
-                  height: 100,
-                  allowDrawingOutsideViewBox: true,
-                ),
+              color: const Color.fromARGB(255, 216, 216, 255),
+              child: SvgPicture.asset(
+                assetG,
+                colorFilter: const ColorFilter.mode(
+                    Color.fromARGB(255, 50, 50, 255), BlendMode.srcIn),
+                width: 100,
+                height: 100,
+                allowDrawingOutsideViewBox: true,
               ),
             ),
             Card(
-              color: const Color.fromARGB(255, 240, 240, 240),
+              color: const Color.fromARGB(255, 255, 216, 216),
               child: SvgPicture.asset(
                 assetL,
                 colorFilter: const ColorFilter.mode(
@@ -82,7 +76,7 @@ class _DashboardState extends State<Dashboard> {
           ],
         ),
         Card(
-            color: Color.fromARGB(255, 230, 230, 230),
+            color: const Color.fromARGB(255, 255, 255, 236),
             child: Text(
               '''
 ---------------------------------------
