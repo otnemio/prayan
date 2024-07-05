@@ -1,3 +1,5 @@
+import 'package:flutter/widgets.dart';
+
 import '../common/methods.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -20,19 +22,21 @@ class _DashboardState extends State<Dashboard> {
     super.initState();
     getLimits().then((val) {
       setState(() {
-        if (val['Msg'].containsKey('cash')) {
-          cash = displayAmt(val['Msg']['cash']);
-        }
-        if (val['Msg'].containsKey('collateral')) {
-          coll = displayAmt(val['Msg']['collateral']);
-        }
-        if (val['Msg'].containsKey('cbu')) {
-          cbu = displayAmt(val['Msg']['cbu']);
-        }
+        if (val['Status'] == 'OK') {
+          if (val['Msg'].containsKey('cash')) {
+            cash = displayAmt(val['Msg']['cash']);
+          }
+          if (val['Msg'].containsKey('collateral')) {
+            coll = displayAmt(val['Msg']['collateral']);
+          }
+          if (val['Msg'].containsKey('cbu')) {
+            cbu = displayAmt(val['Msg']['cbu']);
+          }
 
-        double avlAmt = double.parse(val['Msg']['cash']) +
-            double.parse(val['Msg']['collateral']);
-        avl = displayAmt(avlAmt.toString());
+          double avlAmt = double.parse(val['Msg']['cash']) +
+              double.parse(val['Msg']['collateral']);
+          avl = displayAmt(avlAmt.toString());
+        }
       });
     });
   }
@@ -75,11 +79,12 @@ class _DashboardState extends State<Dashboard> {
             Text("ॐ महा लक्ष्मी नमो नमः!!")
           ],
         ),
-        Card(
-            color: const Color.fromARGB(255, 255, 255, 236),
-            child: Text(
-              '''
----------------------------------------
+        SizedBox(
+            width: 350,
+            child: Card(
+                color: const Color.fromARGB(255, 255, 255, 236),
+                child: Text(
+                  '''
 
  Equity
     Invested         : 12,570.50
@@ -95,10 +100,18 @@ class _DashboardState extends State<Dashboard> {
  MTM
     PnL              :
 
----------------------------------------
 ''',
-              style: const TextStyle(fontFamily: "monospace"),
-            )),
+                  style: const TextStyle(fontFamily: "monospace"),
+                ))),
+        const SizedBox(
+            width: 350,
+            height: 64,
+            child: Card(
+                color: Color.fromARGB(255, 184, 245, 241),
+                child: Padding(
+                    padding: EdgeInsets.all(8),
+                    child: Text(
+                        "Heelo Heelo Heelo Heelo Heelo Heelo Heelo Heelo Heelo Heelo Heelo Heel"))))
       ]),
     );
   }

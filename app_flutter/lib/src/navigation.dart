@@ -18,7 +18,7 @@ class _NavigationWidgetState extends State<NavigationWidget> {
   Widget build(BuildContext context) {
     return Scaffold(
       bottomNavigationBar: NavigationBar(
-        backgroundColor: Color.fromARGB(255, 187, 211, 255),
+        backgroundColor: const Color.fromARGB(255, 187, 211, 255),
         onDestinationSelected: (int index) {
           setState(() {
             currentPageIndex = index;

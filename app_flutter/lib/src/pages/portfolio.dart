@@ -85,10 +85,10 @@ class _PortfolioState extends State<Portfolio> {
                             return const SizedBox.shrink();
                           }
                           if (index == 1) {
-                            return Container(
-                              color: const Color.fromARGB(255, 247, 220, 235),
-                              height: 44,
-                              child: const Column(children: [
+                            return const ListTile(
+                              tileColor: Color.fromARGB(255, 247, 220, 235),
+                              // height: 44,
+                              title: Column(children: [
                                 Row(children: [
                                   Align(
                                     alignment: Alignment.centerLeft,
@@ -108,10 +108,17 @@ class _PortfolioState extends State<Portfolio> {
                               ]),
                             );
                           }
-                          return Container(
-                            margin: const EdgeInsets.only(top: 8),
-                            height: 50,
-                            child: Column(children: [
+                          return ListTile(
+                            onTap: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => const OrderRoute(),
+                                      settings: RouteSettings(
+                                          arguments: ScreenArguments(
+                                              holdings[index - 2].$1))));
+                            },
+                            title: Column(children: [
                               Row(children: [
                                 Align(
                                   alignment: Alignment.centerLeft,
@@ -188,6 +195,34 @@ class _PortfolioState extends State<Portfolio> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class ScreenArguments {
+  final String title;
+
+  ScreenArguments(this.title);
+}
+
+class OrderRoute extends StatelessWidget {
+  const OrderRoute({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final args = ModalRoute.of(context)!.settings.arguments as ScreenArguments;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(args.title),
+      ),
+      body: Center(
+        child: ElevatedButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          child: const Text('Go back!'),
         ),
       ),
     );

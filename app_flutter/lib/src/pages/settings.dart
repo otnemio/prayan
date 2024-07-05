@@ -46,6 +46,16 @@ class _SettingsState extends State<Settings> {
             color: Colors.amber[100],
             child: Center(child: Text(loginstatus)),
           ),
+          Container(
+            height: 50,
+            color: Colors.amber[100],
+            child: Center(
+              child: ElevatedButton(
+                onPressed: () {},
+                child: const Text('Hello'),
+              ),
+            ),
+          ),
         ],
       ),
     );
