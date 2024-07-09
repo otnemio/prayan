@@ -23,6 +23,14 @@ String displayAmt(String str) {
   return formatter.format(double.parse(str)).padLeft(12);
 }
 
+String getLimit(Map<String, dynamic> lmt, String str) {
+  if (lmt['Status'] == 'OK' && lmt['Msg'].containsKey(str)) {
+    return displayAmt(lmt['Msg'][str]);
+  } else {
+    return "";
+  }
+}
+
 Future<Map<String, dynamic>> getHoldings() async {
   var url = Uri.http('192.168.29.6:8080', '/holdings');
   final response = await http.get(url);

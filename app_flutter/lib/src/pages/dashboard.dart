@@ -14,7 +14,7 @@ class Dashboard extends StatefulWidget {
 class _DashboardState extends State<Dashboard> {
   final String assetG = 'assets/ganesh-ji.svg';
   final String assetL = 'assets/lakshmi-ji.svg';
-  late String cash = '--', cbu = '--', coll = '--', avl = '--';
+  String? cash, cbu, coll, brkg, brkgei, brkgec, brkgdm, premium, urmtom;
   late double gl = 0;
 
   @override
@@ -22,21 +22,15 @@ class _DashboardState extends State<Dashboard> {
     super.initState();
     getLimits().then((val) {
       setState(() {
-        if (val['Status'] == 'OK') {
-          if (val['Msg'].containsKey('cash')) {
-            cash = displayAmt(val['Msg']['cash']);
-          }
-          if (val['Msg'].containsKey('collateral')) {
-            coll = displayAmt(val['Msg']['collateral']);
-          }
-          if (val['Msg'].containsKey('cbu')) {
-            cbu = displayAmt(val['Msg']['cbu']);
-          }
-
-          double avlAmt = double.parse(val['Msg']['cash']) +
-              double.parse(val['Msg']['collateral']);
-          avl = displayAmt(avlAmt.toString());
-        }
+        cash = getLimit(val, 'cash');
+        coll = getLimit(val, 'collateral');
+        cbu = getLimit(val, 'cbu');
+        brkg = getLimit(val, 'brokerage');
+        brkgei = getLimit(val, 'brkage_e_i');
+        brkgec = getLimit(val, 'brkage_e_c');
+        brkgdm = getLimit(val, 'brkage_d_m');
+        premium = getLimit(val, 'premium');
+        urmtom = getLimit(val, 'urmtom');
       });
     });
   }
@@ -85,21 +79,23 @@ class _DashboardState extends State<Dashboard> {
                 color: const Color.fromARGB(255, 255, 255, 236),
                 child: Text(
                   '''
-
  Equity
-    Invested         : 12,570.50
-    Current          : 18,540.60
-    Gain/Loss        : 1,021.00
-    
+    Invested            : 12,570.50
+    Current             : 18,540.60
+    Gain/Loss           : 1,021.00
  Margin
-    Available        : $avl
-          Cash       : $cash
-          Collateral : $coll
-    Used             :
-    
- MTM
-    PnL              :
-
+    Available           : 
+          Cash          : $cash
+          Collateral    : $coll
+    Used                :
+ PnL
+    Premium             : $premium
+    UrMtoM              : $urmtom
+ Brokarage
+    Total               : $brkg
+      Equity Intraday   : $brkgei
+      Equity CAC        : $brkgec
+      Derivative Margin : $brkgdm
 ''',
                   style: const TextStyle(fontFamily: "monospace"),
                 ))),
@@ -110,8 +106,8 @@ class _DashboardState extends State<Dashboard> {
                 color: Color.fromARGB(255, 184, 245, 241),
                 child: Padding(
                     padding: EdgeInsets.all(8),
-                    child: Text(
-                        "Heelo Heelo Heelo Heelo Heelo Heelo Heelo Heelo Heelo Heelo Heelo Heel"))))
+                    child:
+                        Text("Learn from trading and non-trading mistakes."))))
       ]),
     );
   }
