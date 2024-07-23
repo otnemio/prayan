@@ -113,14 +113,31 @@ def Btst():
         }
         return jsonify(data)
 
-@app.route('/live', methods = ['GET']) 
-def Live(): 
+@app.route('/stop_all', methods = ['GET']) 
+def StopAll():
     if(request.method == 'GET'):
         if hasattr(api,'_NorenApi__username'):
             status = 'OK'
-            s = request.args.get('s').upper()
+            msg = "Cacelled all pending orders successfully."
+            api.stop_all()
+        else:
+            status = 'NOK'
+            msg = "Not logged in."
+        data = { 
+            'Status' : status,
+            'Msg' : msg,
+        }
+        return jsonify(data)
+
+@app.route('/s/<name>', methods = ['GET']) 
+def Live(name): 
+    if(request.method == 'GET'):
+        if hasattr(api,'_NorenApi__username'):
+            status = 'OK'
+            s = name.upper()
             ins = Instrument(s)
-            msg = api.MD["cprice"][ins.tradename]
+            msg = { "Instrument":s,
+                    "LTP":api.MD["ltp"][ins.tradename] if ins.tradename in api.MD["ltp"] else None}
         else:
             status = 'NOK'
             msg = "Not logged in."

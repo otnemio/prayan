@@ -11,13 +11,23 @@ class ShoonyaApi(NorenApi):
         self.feedOpen = False
         self.log = logger()
         self.connMem = sqlite3.connect(':memory:', check_same_thread=False)
-        self.MD = {'orders':{},'cprice':{},'tradingsymbol':{},'liveTableExists':False, 'infoTableExists':False,
+        self.MD = {'orders':{},'ltp':{},'tradingsymbol':{},'liveTableExists':False, 'infoTableExists':False,
           'listtokens':[],'df_orders':None, 'df_holdings':None,'df_positions':None}
         
 
     def event_handler_feed_update(self,tick_data):
         if not self.feedOpen:
             return
+        if self.MD['df_positions'] is None:
+            retp = self.get_positions()
+            if retp:
+                self.MD['df_positions'] = self.store_positions_data(retp)
+                self.log.info("Positions stored.")
+        if self.MD['df_orders'] is None:    
+            reto = self.get_order_book()
+            if reto:
+                self.MD['df_orders'] = self.store_orders_data(reto)
+                self.log.info("Orders stored.")
         c = self.connMem.cursor()
         if tick_data['t']=='dk':
             self.MD['tradingsymbol'][tick_data['tk']]=tick_data['ts']
@@ -72,7 +82,7 @@ class ShoonyaApi(NorenApi):
             
             if 'lp' in tick_data:
                 
-                self.MD["cprice"][tradingsymbol]=float(tick_data['lp'])
+                self.MD["ltp"][tradingsymbol]=float(tick_data['lp'])
                 
                 if not row:
                     c.execute('''INSERT OR IGNORE INTO live (tradingsymbol, minute, openp, highp, lowp, closep, volume) VALUES (?,?,?,?,?,?,?) ''',
@@ -93,6 +103,7 @@ class ShoonyaApi(NorenApi):
     def event_handler_order_update(self,tick_data):
         if not self.feedOpen:
             return
+        
         if self.MD['df_orders']['orderno'].str.contains(tick_data['norenordno']).any():
             self.MD['df_orders'].loc[self.MD['df_orders']['orderno']==tick_data['norenordno'],'status']=tick_data['status']
         else:
@@ -101,14 +112,7 @@ class ShoonyaApi(NorenApi):
                                                     tick_data['qty'],
                                                     tick_data['prc'],
                                                     tick_data['status'],
-                                                    tick_data['trantype']]
-        if tick_data['status']=='COMPLETE':
-            retp = self.get_positions()
-            if retp:
-                self.MD['df_positions'] = self.store_positions_data(retp)
-            reto = self.get_order_book()
-            if reto:
-                self.MD['df_orders'] = self.store_orders_data(reto)
+                                                    tick_data['trantype'],None]
     
     def store_orders_data(self,data):
         df = {'orderno':[],'tradingsymbol':[],'quantity':[],'price':[],'status':[],'type':[],'ordertime':[]}
@@ -125,13 +129,15 @@ class ShoonyaApi(NorenApi):
         return pd.DataFrame(df)
 
     def store_positions_data(self,data):
-        df = {'tradingsymbol':[],'product':[],'quantity':[],'pnl':[]}
+        df = {'tradingsymbol':[],'product':[],'quantity':[],'pnl':[],'s_prdt_ali':[],'exch':[]}
         for row in data:
             if row['stat']=='Ok':
                 df['tradingsymbol'].append(row['tsym'])
                 df['product'].append(row['s_prdt_ali'])
                 df['quantity'].append(int(row['netqty']))
                 df['pnl'].append(float(row['rpnl'])+float(row['urmtom']))
+                df['s_prdt_ali'].append(row['s_prdt_ali'])
+                df['exch'].append(row['exch'])
         return pd.DataFrame(df)
 
     
@@ -152,6 +158,31 @@ class ShoonyaApi(NorenApi):
         self.log.info('Feed is Close')
         self.connMem.close()
 
+    def stop_all(self):
+        openposcount = 0
+        
+        for row in self.MD['df_positions'][self.MD['df_positions']['quantity']>0].iterrows():
+            match (row[1].s_prdt_ali):
+                case 'NRML':
+                    prd = 'M'
+                case 'CNC':
+                    prd = 'C'
+                case 'MIS':
+                    prd = 'I'
+            ret = self.place_order(buy_or_sell='S', product_type=prd,
+                                exchange=row[1].exch, tradingsymbol=row[1].tradingsymbol, 
+                                quantity=row[1].quantity, discloseqty=0,price_type='MKT',
+                                retention='DAY', remarks='stop_all')
+            self.log.info(f"{ret['stat']}")     
+            openposcount +=1
+        self.log.info(f"Counter orders for {openposcount} positions submitted.") 
+
+        openordcount = 0 
+        for row in self.MD['df_orders'][self.MD['df_orders']['status']=='OPEN'].iterrows():
+            self.cancel_order(row[1].orderno)
+            openordcount +=1
+        self.log.info(f"{openordcount} orders cancelled.") 
+
 class Instrument():
     name:str
     exch:str
@@ -159,7 +190,7 @@ class Instrument():
     def __init__(self,name:str,exch:str='NSE') -> None:
         self.name = name.upper()
         self.exch = exch.upper()
-        self.tradename =  name if self.exch !='NSE' else f'{name}-EQ'  
+        self.tradename =  name if self.exch !='NSE' else f'{name}-EQ'
     
     
     
