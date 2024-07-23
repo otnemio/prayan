@@ -1,3 +1,4 @@
+import 'package:app_flutter/src/pages/watchlist.dart';
 import 'package:flutter/material.dart';
 import 'menu.dart';
 import 'pages/dashboard.dart';
@@ -86,6 +87,8 @@ Widget mScaffold(context, String titleText) {
 
 Widget mPage(String titleText) {
   switch (titleText) {
+    case 'Watchlist':
+      return const Watchlist();
     case 'Dashboard':
       return const Dashboard();
     case 'Portfolio':
