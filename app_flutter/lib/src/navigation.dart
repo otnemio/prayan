@@ -1,6 +1,7 @@
 import 'package:app_flutter/src/pages/watchlist.dart';
 import 'package:flutter/material.dart';
 import 'menu.dart';
+import 'pages/orders.dart';
 import 'pages/dashboard.dart';
 import 'pages/portfolio.dart';
 import 'pages/settings.dart';
@@ -89,6 +90,8 @@ Widget mPage(String titleText) {
   switch (titleText) {
     case 'Watchlist':
       return const Watchlist();
+    case 'Orders':
+      return const Orders();
     case 'Dashboard':
       return const Dashboard();
     case 'Portfolio':

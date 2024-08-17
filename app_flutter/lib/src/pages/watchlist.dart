@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/sparkcharts.dart';
 
@@ -9,6 +11,17 @@ class Watchlist extends StatefulWidget {
 }
 
 class _WatchlistState extends State<Watchlist> {
+  List<int> pLine = [];
+  @override
+  void initState() {
+    super.initState();
+    getPriceLine('BEL-EQ').then((val) {
+      setState(() {
+        pLine = [41, 51, 31];
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView(
@@ -52,10 +65,8 @@ class _WatchlistState extends State<Watchlist> {
                     ]),
                 SizedBox(
                   height: 50,
-                  child: SfSparkLineChart(
-                      width: 1,
-                      axisLineWidth: 1,
-                      data: const [-3, 1, -8, 5, -1, 5, -2, 2, 3, -5, 8, 7]),
+                  child:
+                      SfSparkLineChart(width: 1, axisLineWidth: 1, data: pLine),
                 ),
               ]),
             ),
@@ -119,5 +130,16 @@ class _WatchlistState extends State<Watchlist> {
         ),
       ],
     );
+  }
+}
+
+Future<String> getPriceLine(String instrument) async {
+  try {
+    var url = Uri.http('192.168.29.6:8080', '/s/$instrument');
+    final response = await http.get(url);
+    var jObj = jsonDecode(response.body);
+    return jObj['Msg'];
+  } catch (e) {
+    return 'NOK';
   }
 }

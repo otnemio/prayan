@@ -1,102 +1,70 @@
 import 'package:flutter/material.dart';
-Widget mOrders(){
-return DefaultTabController(
-              length: 2,
-              child: Scaffold(
-                appBar: AppBar(
-                  title: const TabBar(
-                    tabs: <Widget>[
-                      Tab(
-                        text: 'Open',
-                      ),
-                      Tab(
-                        text: 'Complete',
-                      ),
-                    ],
-                  ),
-                ),
-                body: TabBarView(
-                  children: <Widget>[
-                    Center(
-                      child: Column(
-                        children: [
-                          SizedBox(
-                            height: 120,
-                            child: Card(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    margin: const EdgeInsets.symmetric(
-                                        horizontal: 25),
-                                    child: const Wrap(
-                                      direction: Axis.vertical,
-                                      children: [
-                                        Text("Current:"),
-                                        Text("10075.80"),
-                                        Text("Invested:"),
-                                        Text("9005.10"),
-                                      ],
-                                    ),
-                                  ),
-                                  Container(
-                                    margin: const EdgeInsets.symmetric(
-                                        horizontal: 25),
-                                    child: const Wrap(
-                                      direction: Axis.vertical,
-                                      children: [
-                                        Text("Pnl:"),
-                                        Text("Pnl:"),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Center(
-                      child: Column(
-                        children: [
-                          SizedBox(
-                            height: 120,
-                            child: Card(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    margin: const EdgeInsets.symmetric(
-                                        horizontal: 25),
-                                    child: const Wrap(
-                                      direction: Axis.vertical,
-                                      children: [
-                                        Text("Pnl:"),
-                                        Text("Pnl:"),
-                                      ],
-                                    ),
-                                  ),
-                                  Container(
-                                    margin: const EdgeInsets.symmetric(
-                                        horizontal: 25),
-                                    child: const Wrap(
-                                      direction: Axis.vertical,
-                                      children: [
-                                        Text("Pnl:"),
-                                        Text("Pnl:"),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+
+class Orders extends StatefulWidget {
+  const Orders({super.key});
+
+  @override
+  State<Orders> createState() => _OrdersState();
+}
+
+class _OrdersState extends State<Orders> {
+  String serverstatus = '--', loginstatus = '--';
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: const Color.fromARGB(255, 255, 255, 255),
+      child: ListView(
+        padding: const EdgeInsets.all(8),
+        children: <Widget>[
+          Container(
+            height: 50,
+            color: Colors.amber[500],
+            child: Center(child: Text(serverstatus)),
+          ),
+          Container(
+            height: 50,
+            color: Colors.amber[100],
+            child: Center(child: Text(loginstatus)),
+          ),
+          Container(
+            height: 50,
+            color: Colors.amber[100],
+            child: Center(
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const OrderRoute(),
+                          settings: const RouteSettings()));
+                },
+                child: const Text('Punch Order'),
               ),
-            );
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class OrderRoute extends StatelessWidget {
+  const OrderRoute({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Order"),
+      ),
+      body: Center(
+        child: ElevatedButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          child: const Text('Go back!'),
+        ),
+      ),
+    );
+  }
 }

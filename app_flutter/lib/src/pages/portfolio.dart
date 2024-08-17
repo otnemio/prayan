@@ -113,7 +113,8 @@ class _PortfolioState extends State<Portfolio> {
                               Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                      builder: (context) => const OrderRoute(),
+                                      builder: (context) =>
+                                          const InstrumentRoute(),
                                       settings: RouteSettings(
                                           arguments: ScreenArguments(
                                               holdings[index - 2].$1))));
@@ -207,8 +208,8 @@ class ScreenArguments {
   ScreenArguments(this.title);
 }
 
-class OrderRoute extends StatelessWidget {
-  const OrderRoute({super.key});
+class InstrumentRoute extends StatelessWidget {
+  const InstrumentRoute({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -231,16 +232,3 @@ class OrderRoute extends StatelessWidget {
 
 final List<String> entries = <String>['A', 'B', 'C', 'D', 'E'];
 final List<int> colorCodes = <int>[600, 500, 100, 200, 300];
-
-Widget mListView() {
-  return ListView.builder(
-      padding: const EdgeInsets.all(8),
-      itemCount: entries.length,
-      itemBuilder: (BuildContext context, int index) {
-        return Container(
-          height: 50,
-          color: Colors.amber[colorCodes[index]],
-          child: Center(child: Text('Entry ${entries[index]}')),
-        );
-      });
-}

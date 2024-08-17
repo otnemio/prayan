@@ -62,44 +62,6 @@ class _SettingsState extends State<Settings> {
   }
 }
 
-Widget mSettings() {
-  return Card(
-    shadowColor: Colors.transparent,
-    margin: const EdgeInsets.all(8.0),
-    child: SizedBox.expand(
-      child: Center(
-        child: mListViewSettings(),
-      ),
-    ),
-  );
-}
-
-Widget mListViewSettings() {
-  return ListView(
-    padding: const EdgeInsets.all(8),
-    children: <Widget>[
-      Container(
-        height: 50,
-        color: Colors.amber[600],
-        child: ElevatedButton(
-          onPressed: () {},
-          child: const Text('Enabled'),
-        ),
-      ),
-      Container(
-        height: 50,
-        color: Colors.amber[500],
-        child: const Center(child: Text('Entry B')),
-      ),
-      Container(
-        height: 50,
-        color: Colors.amber[100],
-        child: const Center(child: Text('Entry C')),
-      ),
-    ],
-  );
-}
-
 Future<String> getLoginStatus() async {
   var url = Uri.http('192.168.29.6:8080', '/loggedin');
   final response = await http.get(url);
