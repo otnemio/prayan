@@ -12,7 +12,8 @@ class ShoonyaApi(NorenApi):
         self.log = logger()
         self.connMem = sqlite3.connect(':memory:', check_same_thread=False)
         self.MD = {'orders':{},'ltp':{},'tradingsymbol':{},'liveTableExists':False, 'infoTableExists':False,
-          'listtokens':[],'df_orders':None, 'df_holdings':None,'df_positions':None}
+          'listtokens':[],'df_orders':None, 'df_holdings':None,'df_positions':None,
+          'trail':{}}
         
 
     def event_handler_feed_update(self,tick_data):
@@ -106,6 +107,21 @@ class ShoonyaApi(NorenApi):
         
         if self.MD['df_orders']['orderno'].str.contains(tick_data['norenordno']).any():
             self.MD['df_orders'].loc[self.MD['df_orders']['orderno']==tick_data['norenordno'],'status']=tick_data['status']
+            if tick_data['norenordno'] in self.MD['trail'] and tick_data['status']=='COMPLETE':
+                ret = self.place_order(buy_or_sell=self.MD['trail'][tick_data['norenordno']]['buy_or_sell'],
+                                    product_type=self.MD['trail'][tick_data['norenordno']]['product_type'],
+                                    exchange=self.MD['trail'][tick_data['norenordno']]['exchange'],
+                                    tradingsymbol=self.MD['trail'][tick_data['norenordno']]['tradingsymbol'],
+                                    quantity=self.MD['trail'][tick_data['norenordno']]['quantity'],
+                                    discloseqty=self.MD['trail'][tick_data['norenordno']]['discloseqty'],
+                                    price_type=self.MD['trail'][tick_data['norenordno']]['price_type'],
+                                    price=self.MD['trail'][tick_data['norenordno']]['price'],
+                                    trigger_price=self.MD['trail'][tick_data['norenordno']]['trigger_price'],
+                                    retention=self.MD['trail'][tick_data['norenordno']]['retention'],
+                                    remarks=self.MD['trail'][tick_data['norenordno']]['remarks']
+                                    )
+                if ret:
+                    print(f"trailing order for {tick_data['norenordno']} is successful which is {ret['norenordno']}.")
         else:
             self.MD['df_orders'].loc[self.MD['df_orders'].index.max()+1]=[tick_data['norenordno'],
                                                     tick_data['tsym'],
@@ -158,6 +174,7 @@ class ShoonyaApi(NorenApi):
         self.log.info('Feed is Close')
         self.connMem.close()
 
+    # incomplete
     def stop_all(self):
         openposcount = 0
         
@@ -183,6 +200,17 @@ class ShoonyaApi(NorenApi):
             openordcount +=1
         self.log.info(f"{openordcount} orders cancelled.") 
 
+    def trail_order(self,orderno:str,tradingsymbol:str, price:float, trigger_price:float,
+                    buy_or_sell:str, product_type='I',
+                                exchange='NSE', 
+                                quantity=1, discloseqty=0, price_type='SL-LMT', 
+                                retention='DAY', remarks='place_order'):
+        self.MD['trail'][orderno]={'tradingsymbol':tradingsymbol,'price':price,'trigger_price':trigger_price,
+                                   'buy_or_sell':buy_or_sell,'product_type':product_type,
+                                'exchange':exchange, 
+                                'quantity':quantity, 'discloseqty':discloseqty, 'price_type':price_type, 
+                                'retention':retention, 'remarks':remarks}
+
 class Instrument():
     name:str
     exch:str
@@ -191,6 +219,8 @@ class Instrument():
         self.name = name.upper()
         self.exch = exch.upper()
         self.tradename =  name if self.exch !='NSE' else f'{name}-EQ'
+    def priceline(minutes:int=1):
+        return [ SharedMethods.rp(301.25),SharedMethods.rp(301.85),SharedMethods.rp(301.75) ]
     
     
     

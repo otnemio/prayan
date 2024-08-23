@@ -137,7 +137,8 @@ def Live(name):
             s = name.upper()
             ins = Instrument(s)
             msg = { "Instrument":s,
-                    "LTP":api.MD["ltp"][ins.tradename] if ins.tradename in api.MD["ltp"] else None}
+                    "LTP":api.MD["ltp"][ins.tradename] if ins.tradename in api.MD["ltp"] else None,
+                    "PriceLine":ins.priceline()}
         else:
             status = 'NOK'
             msg = "Not logged in."
@@ -146,6 +147,53 @@ def Live(name):
             'Msg' : msg,
         }
         return jsonify(data)
+
+# /to/BEL?t=b&p=304.15&tp=304.05&slp=303.75&sltp=303.85
+@app.route('/to/<name>', methods = ['GET']) 
+def TrailOrder(name): 
+    if(request.method == 'GET'):
+        if hasattr(api,'_NorenApi__username'):
+            status = 'OK'
+            s = name.upper()
+            ins = Instrument(s)
+            match request.args.get('t'):
+                case 'b':
+                    ret = api.place_order(buy_or_sell='B', product_type='I',
+                                exchange='NSE', tradingsymbol='BEL-EQ', 
+                                quantity=1, discloseqty=0, price_type='SL-LMT', 
+                                price=float(request.args.get('p')), trigger_price=float(request.args.get('tp')),
+                                retention='DAY', remarks='place_order')
+                    if ret:
+                        api.trail_order(ret['norenordno'],buy_or_sell='S', product_type='I',
+                                exchange='NSE', tradingsymbol='BEL-EQ', 
+                                quantity=1, discloseqty=0, price_type='SL-LMT', 
+                                price=float(request.args.get('slp')), trigger_price=float(request.args.get('sltp')),
+                                retention='DAY', remarks='place_order')
+
+                case 's':
+                    ret = api.place_order(buy_or_sell='S', product_type='I',
+                                exchange='NSE', tradingsymbol='BEL-EQ', 
+                                quantity=1, discloseqty=0, price_type='MKT',
+                                retention='DAY', remarks='place_order')
+                    if ret:
+                        api.trail_order(ret['norenordno'],buy_or_sell='B', product_type='I',
+                                exchange='NSE', tradingsymbol='BEL-EQ', 
+                                quantity=1, discloseqty=0, price_type='SL-LMT', 
+                                price=float(request.args.get('slp')), trigger_price=float(request.args.get('sltp')),
+                                retention='DAY', remarks='place_order')
+                case _:
+                    msg="Error in buy/sell parameter passing."
+            
+            msg = "Order punched."
+        else:
+            status = 'NOK'
+            msg = "Not logged in."
+        data = { 
+            'Status' : status,
+            'Msg' : msg,
+        }
+        return jsonify(data)
+
 
 def initialize():  
     global log, api 
