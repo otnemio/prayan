@@ -35,9 +35,10 @@ class _WatchlistState extends State<Watchlist> {
   void _updateDataSource(Timer timer) {
     getPriceLine('BEL-EQ').then((val) {
       setState(() {
-        if (val != 'NOK') {
-          pLine = [41, 51, val['Test']];
+        if (val == 'NOK') {
+          timer.cancel();
         }
+        pLine = [41, 51, val['Test']];
         print(val);
       });
     });
