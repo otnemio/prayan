@@ -158,21 +158,31 @@ class _OrderState extends State<OrderRoute> {
                     ),
                   ),
                   Expanded(
-                    child: DropdownMenu<String>(
-                      initialSelection: list.first,
-                      onSelected: (String? value) {
-                        // This is called when the user selects an item.
-                        setState(() {
-                          dropdownValue = value!;
-                        });
-                      },
-                      dropdownMenuEntries:
-                          list.map<DropdownMenuEntry<String>>((String value) {
-                        return DropdownMenuEntry<String>(
-                            value: value, label: value);
-                      }).toList(),
-                    ),
-                  )
+                      child: Column(
+                    children: <Widget>[
+                      DropdownMenu<String>(
+                        initialSelection: list.first,
+                        onSelected: (String? value) {
+                          // This is called when the user selects an item.
+                          setState(() {
+                            dropdownValue = value!;
+                          });
+                        },
+                        dropdownMenuEntries:
+                            list.map<DropdownMenuEntry<String>>((String value) {
+                          return DropdownMenuEntry<String>(
+                              value: value, label: value);
+                        }).toList(),
+                      ),
+                      const TextField(
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: 'Quantity',
+                        ),
+                        keyboardType: TextInputType.number,
+                      )
+                    ],
+                  ))
                 ],
               ),
             ),
@@ -257,20 +267,24 @@ class _OrderState extends State<OrderRoute> {
                       ],
                     ),
                   ),
-                  Expanded(
-                    child: DropdownMenu<int>(
-                      initialSelection: strike.first,
-                      onSelected: (int? value) {
-                        // This is called when the user selects an item.
-                        setState(() {
-                          dropdownStrikeValue = value!;
-                        });
-                      },
-                      dropdownMenuEntries:
-                          strike.map<DropdownMenuEntry<int>>((int value) {
-                        return DropdownMenuEntry<int>(
-                            value: value, label: value.toString());
-                      }).toList(),
+                  const Expanded(
+                    child: Column(
+                      children: <Widget>[
+                        TextField(
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            hintText: 'Trigger Price',
+                          ),
+                          keyboardType: TextInputType.number,
+                        ),
+                        TextField(
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            hintText: 'Price',
+                          ),
+                          keyboardType: TextInputType.number,
+                        )
+                      ],
                     ),
                   )
                 ],
