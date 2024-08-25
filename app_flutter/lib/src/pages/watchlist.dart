@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
@@ -12,12 +13,32 @@ class Watchlist extends StatefulWidget {
 
 class _WatchlistState extends State<Watchlist> {
   List<int> pLine = [];
+  Timer? timer;
   @override
   void initState() {
     super.initState();
+    // getPriceLine('BEL-EQ').then((val) {
+    //   setState(() {
+    //     pLine = [41, 51, 31];
+    //   });
+    // });
+    timer =
+        Timer.periodic(const Duration(milliseconds: 2500), _updateDataSource);
+  }
+
+  @override
+  void dispose() {
+    timer?.cancel();
+    super.dispose();
+  }
+
+  void _updateDataSource(Timer timer) {
     getPriceLine('BEL-EQ').then((val) {
       setState(() {
-        pLine = [41, 51, 31];
+        if (val != 'NOK') {
+          pLine = [41, 51, val['Test']];
+        }
+        print(val);
       });
     });
   }
@@ -133,7 +154,7 @@ class _WatchlistState extends State<Watchlist> {
   }
 }
 
-Future<String> getPriceLine(String instrument) async {
+Future<dynamic> getPriceLine(String instrument) async {
   try {
     var url = Uri.http('192.168.29.6:8080', '/s/$instrument');
     final response = await http.get(url);
