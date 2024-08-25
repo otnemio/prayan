@@ -2,7 +2,7 @@ from shoonya import ShoonyaApi, Instrument
 from logger import logger
 from flask import Flask,jsonify,request 
 from waitress import serve
-import os, yaml, sys, threading, datetime, time
+import os, yaml, sys, threading, datetime, time, random
 
 app =   Flask(__name__) 
   
@@ -138,6 +138,7 @@ def Live(name):
             ins = Instrument(s)
             msg = { "Instrument":s,
                     "LTP":api.MD["ltp"][ins.tradename] if ins.tradename in api.MD["ltp"] else None,
+                    "Test":ir,
                     "PriceLine":ins.priceline()}
         else:
             status = 'NOK'
@@ -203,9 +204,11 @@ def initialize():
 
 def trade():
     log.info("Trading")
+    global ir
     while True:
         now = datetime.datetime.now()
         time.sleep(1)
+        ir = random.randint(10,50)    
         # print(s.spot)
         
 

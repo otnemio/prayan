@@ -121,7 +121,7 @@ class ShoonyaApi(NorenApi):
                                     remarks=self.MD['trail'][tick_data['norenordno']]['remarks']
                                     )
                 if ret:
-                    print(f"trailing order for {tick_data['norenordno']} is successful which is {ret['norenordno']}.")
+                    self.log.info(f"trailing order for {tick_data['norenordno']} is successful which is {ret['norenordno']}.")
         else:
             self.MD['df_orders'].loc[self.MD['df_orders'].index.max()+1]=[tick_data['norenordno'],
                                                     tick_data['tsym'],
