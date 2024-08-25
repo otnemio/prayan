@@ -32,7 +32,7 @@ class _OrdersState extends State<Orders> {
             child: Center(
               child: ElevatedButton(
                 onPressed: () {
-                  _awaitMainReturnValueFromSecondScreen(context);
+                  _awaitReturnValueFromSecondScreen(context, false);
                 },
                 child: const Text('Create Main Order'),
               ),
@@ -44,7 +44,7 @@ class _OrdersState extends State<Orders> {
             child: Center(
               child: ElevatedButton(
                 onPressed: () {
-                  _awaitTrailingReturnValueFromSecondScreen(context);
+                  _awaitReturnValueFromSecondScreen(context, true);
                 },
                 child: const Text('Create Trailing Order'),
               ),
@@ -65,7 +65,8 @@ class _OrdersState extends State<Orders> {
     );
   }
 
-  void _awaitMainReturnValueFromSecondScreen(BuildContext context) async {
+  void _awaitReturnValueFromSecondScreen(
+      BuildContext context, bool trailing) async {
     // start the SecondScreen and wait for it to finish with a result
     final result = await Navigator.push(
         context,
@@ -75,21 +76,13 @@ class _OrdersState extends State<Orders> {
 
     // after the SecondScreen result comes back update the widget with it
     setState(() {
-      mainorder = result;
-    });
-  }
-
-  void _awaitTrailingReturnValueFromSecondScreen(BuildContext context) async {
-    // start the SecondScreen and wait for it to finish with a result
-    final result = await Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) => const OrderRoute(),
-            settings: const RouteSettings()));
-
-    // after the SecondScreen result comes back update the widget with it
-    setState(() {
-      trailingorder = result;
+      if (result != null) {
+        if (trailing) {
+          trailingorder = result;
+        } else {
+          mainorder = result;
+        }
+      }
     });
   }
 }
