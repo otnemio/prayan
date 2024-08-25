@@ -14,7 +14,7 @@ class NavigationWidget extends StatefulWidget {
 }
 
 class _NavigationWidgetState extends State<NavigationWidget> {
-  int currentPageIndex = 0;
+  int currentPageIndex = 4;
 
   @override
   Widget build(BuildContext context) {
