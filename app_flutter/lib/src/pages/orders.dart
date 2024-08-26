@@ -98,7 +98,8 @@ class _OrderState extends State<OrderRoute> {
   OrderType? _character = OrderType.equity;
   OptionType? _option = OptionType.call;
   BuySellType? _bos = BuySellType.buy;
-  String dropdownValue = list.first;
+  String dropdownValue = listInstrument.first;
+  String dropdownExpiryValue = expiry.first;
   int dropdownStrikeValue = strike.first;
   @override
   Widget build(BuildContext context) {
@@ -154,15 +155,29 @@ class _OrderState extends State<OrderRoute> {
                       child: Column(
                     children: <Widget>[
                       DropdownMenu<String>(
-                        initialSelection: list.first,
+                        initialSelection: listInstrument.first,
                         onSelected: (String? value) {
                           // This is called when the user selects an item.
                           setState(() {
                             dropdownValue = value!;
                           });
                         },
-                        dropdownMenuEntries:
-                            list.map<DropdownMenuEntry<String>>((String value) {
+                        dropdownMenuEntries: listInstrument
+                            .map<DropdownMenuEntry<String>>((String value) {
+                          return DropdownMenuEntry<String>(
+                              value: value, label: value);
+                        }).toList(),
+                      ),
+                      DropdownMenu<String>(
+                        initialSelection: expiry.first,
+                        onSelected: (String? value) {
+                          // This is called when the user selects an item.
+                          setState(() {
+                            dropdownExpiryValue = value!;
+                          });
+                        },
+                        dropdownMenuEntries: expiry
+                            .map<DropdownMenuEntry<String>>((String value) {
                           return DropdownMenuEntry<String>(
                               value: value, label: value);
                         }).toList(),
@@ -303,7 +318,9 @@ enum OptionType { call, put }
 enum BuySellType { buy, sell }
 
 const List<int> strike = <int>[315, 320, 325, 330, 335, 340];
-const List<String> list = <String>[
+const List<String> expiry = <String>['AUG', 'SEP', 'OCT'];
+
+const List<String> listInstrument = <String>[
   'BEL',
   'RELIANCE',
 ];
