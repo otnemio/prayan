@@ -35,8 +35,10 @@ class _WatchlistState extends State<Watchlist> {
   void _updateDataSource(Timer timer) {
     getPriceLine('BEL-EQ').then((val) {
       setState(() {
-        if (val == 'NOK') {
+        print(val);
+        if (val == 'NOK' || val['Status'] == 'NOK') {
           timer.cancel();
+          return;
         }
         pLine = [41, 51, val['Test']];
         print(val);
@@ -160,7 +162,7 @@ Future<dynamic> getPriceLine(String instrument) async {
     var url = Uri.http('192.168.29.6:8080', '/s/$instrument');
     final response = await http.get(url);
     var jObj = jsonDecode(response.body);
-    return jObj['Msg'];
+    return jObj;
   } catch (e) {
     return 'NOK';
   }
