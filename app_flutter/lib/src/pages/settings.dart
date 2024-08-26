@@ -11,7 +11,7 @@ class Settings extends StatefulWidget {
 
 class _SettingsState extends State<Settings> {
   String serverstatus = '--', loginstatus = '--';
-
+  final totpController = TextEditingController();
   @override
   void initState() {
     super.initState();
@@ -49,11 +49,29 @@ class _SettingsState extends State<Settings> {
           Container(
             height: 50,
             color: Colors.amber[100],
-            child: Center(
-              child: ElevatedButton(
-                onPressed: () {},
-                child: const Text('Hello'),
-              ),
+            child: Row(
+              children: [
+                Flexible(
+                  child: TextField(
+                    controller: totpController,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'TOTP',
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    setLoginTOTP(totpController.text).then((val) {
+                      setState(() {
+                        loginstatus = val['Msg'];
+                      });
+                    });
+                  },
+                  child: const Text('Okay'),
+                ),
+              ],
             ),
           ),
         ],
@@ -67,6 +85,16 @@ Future<String> getLoginStatus() async {
   final response = await http.get(url);
   var jObj = jsonDecode(response.body);
   return jObj['Msg'];
+}
+
+Future<dynamic> setLoginTOTP(String tOTP) async {
+  final queryParameters = {
+    'totp': '$tOTP',
+  };
+  var url = Uri.http('192.168.29.6:8080', '/login', queryParameters);
+  final response = await http.get(url);
+  var jObj = jsonDecode(response.body);
+  return jObj;
 }
 
 Future<String> getServerStatus() async {
