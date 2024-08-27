@@ -8,7 +8,8 @@ class Orders extends StatefulWidget {
 }
 
 class _OrdersState extends State<Orders> {
-  String mainorder = '--', trailingorder = '--';
+  Order main = Order(OrderType.option, OptionType.call, BuySellType.buy);
+  Order trail = Order(OrderType.option, OptionType.call, BuySellType.sell);
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -19,12 +20,12 @@ class _OrdersState extends State<Orders> {
           Container(
             height: 50,
             color: Colors.amber[100],
-            child: Center(child: Text(mainorder)),
+            child: Center(child: Text(main.bos.toString())),
           ),
           Container(
             height: 50,
             color: Colors.amber[100],
-            child: Center(child: Text(trailingorder)),
+            child: Center(child: Text(trail.toString())),
           ),
           Container(
             height: 50,
@@ -55,7 +56,13 @@ class _OrdersState extends State<Orders> {
             color: Colors.green[200],
             child: Center(
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  punchOrder(main, trail).then((val) {
+                    setState(() {
+                      print(val['Msg']);
+                    });
+                  });
+                },
                 child: const Text('Punch'),
               ),
             ),
@@ -78,9 +85,9 @@ class _OrdersState extends State<Orders> {
     setState(() {
       if (result != null) {
         if (trailing) {
-          trailingorder = result;
+          trail = result;
         } else {
-          mainorder = result;
+          main = result;
         }
       }
     });
@@ -95,9 +102,9 @@ class OrderRoute extends StatefulWidget {
 }
 
 class _OrderState extends State<OrderRoute> {
-  OrderType? _character = OrderType.equity;
-  OptionType? _option = OptionType.call;
-  BuySellType? _bos = BuySellType.buy;
+  OrderType _type = OrderType.equity;
+  OptionType _option = OptionType.call;
+  BuySellType _bos = BuySellType.buy;
   String dropdownValue = listInstrument.first;
   String dropdownExpiryValue = expiry.first;
   int dropdownStrikeValue = strike.first;
@@ -121,30 +128,30 @@ class _OrderState extends State<OrderRoute> {
                         RadioListTile<OrderType>(
                           title: const Text('Equity'),
                           value: OrderType.equity,
-                          groupValue: _character,
+                          groupValue: _type,
                           onChanged: (OrderType? value) {
                             setState(() {
-                              _character = value;
+                              _type = value as OrderType;
                             });
                           },
                         ),
                         RadioListTile<OrderType>(
                           title: const Text('Future'),
                           value: OrderType.future,
-                          groupValue: _character,
+                          groupValue: _type,
                           onChanged: (OrderType? value) {
                             setState(() {
-                              _character = value;
+                              _type = value as OrderType;
                             });
                           },
                         ),
                         RadioListTile<OrderType>(
                           title: const Text('Option'),
                           value: OrderType.option,
-                          groupValue: _character,
+                          groupValue: _type,
                           onChanged: (OrderType? value) {
                             setState(() {
-                              _character = value;
+                              _type = value as OrderType;
                             });
                           },
                         ),
@@ -208,7 +215,7 @@ class _OrderState extends State<OrderRoute> {
                           groupValue: _option,
                           onChanged: (OptionType? value) {
                             setState(() {
-                              _option = value;
+                              _option = value as OptionType;
                             });
                           },
                         ),
@@ -218,7 +225,7 @@ class _OrderState extends State<OrderRoute> {
                           groupValue: _option,
                           onChanged: (OptionType? value) {
                             setState(() {
-                              _option = value;
+                              _option = value as OptionType;
                             });
                           },
                         ),
@@ -258,7 +265,7 @@ class _OrderState extends State<OrderRoute> {
                           groupValue: _bos,
                           onChanged: (BuySellType? value) {
                             setState(() {
-                              _bos = value;
+                              _bos = value as BuySellType;
                             });
                           },
                         ),
@@ -268,7 +275,7 @@ class _OrderState extends State<OrderRoute> {
                           groupValue: _bos,
                           onChanged: (BuySellType? value) {
                             setState(() {
-                              _bos = value;
+                              _bos = value as BuySellType;
                             });
                           },
                         ),
@@ -300,7 +307,8 @@ class _OrderState extends State<OrderRoute> {
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.pop(context, "$_bos $_option");
+                Navigator.pop(context,
+                    Order.complete(_type, _option, _bos, dropdownExpiryValue));
               },
               child: const Text('Save'),
             ),
@@ -324,3 +332,37 @@ const List<String> listInstrument = <String>[
   'BEL',
   'RELIANCE',
 ];
+
+class Order {
+  OrderType efo;
+  OptionType pall;
+  BuySellType bos;
+  late String expiry;
+  Order(this.efo, this.pall, this.bos);
+  Order.complete(this.efo, this.pall, this.bos, this.expiry);
+  @override
+  String toString() {
+    switch (efo) {
+      case OrderType.option:
+        return "${bos == BuySellType.buy ? 'Buy' : 'Sell'} "
+            "n quantities of "
+            "${pall == OptionType.call ? 'Call' : 'Put'} option "
+            "of strike price f "
+            "having expiry $expiry. "
+            "Trigger price: tp, Price: p.";
+      default:
+        return "None";
+    }
+  }
+}
+
+Future<dynamic> punchOrder(mainorder, trailingorder) async {
+  final queryParameters = {
+    'main': mainorder,
+    'trail': trailingorder,
+  };
+  var url = Uri.http('192.168.29.6:8080', '/login', queryParameters);
+  // final response = await http.get(url);
+  // var jObj = jsonDecode(response.body);
+  return "hello";
+}
