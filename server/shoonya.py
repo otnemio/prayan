@@ -13,7 +13,7 @@ class ShoonyaApi(NorenApi):
         self.connMem = sqlite3.connect(':memory:', check_same_thread=False)
         self.MD = {'orders':{},'ltp':{},'tradingsymbol':{},'liveTableExists':False, 'infoTableExists':False,
           'listtokens':[],'df_orders':None, 'df_holdings':None,'df_positions':None,
-          'trail':{}}
+          'trail':{},'follow':{}}
         
 
     def event_handler_feed_update(self,tick_data):
@@ -85,6 +85,31 @@ class ShoonyaApi(NorenApi):
                 
                 self.MD["ltp"][tradingsymbol]=float(tick_data['lp'])
                 
+                #trail
+                # if diff between current price and followed price is getting bigger then make it smaller
+                for key,val in self.MD['follow'].items():
+                    if val['tradingsymbol']==tradingsymbol:
+                        if float(val['trigger_price'])>float(val['price']):
+                            sell_order = 1
+                        else:
+                            sell_order =-1
+                        if abs(self.MD["ltp"][tradingsymbol]-float(val['trigger_price']))>3:
+                            ret = self.modify_order(exchange=val['exchange'],
+                                                    tradingsymbol=tradingsymbol,
+                                                    orderno=key,
+                                                    newquantity=val['quantity'],
+                                                    newprice_type=val['price_type'],
+                                                    newprice=val['price']+sell_order*1, 
+                                                    newtrigger_price=float(val['trigger_price'])+sell_order*1)
+                            self.MD['follow'][key]['trigger_price']=val['trigger_price']+sell_order*1
+                            self.MD['follow'][key]['price']=val['price']+sell_order*1
+                            if ret['stat']=='Ok':
+                                self.log.info(f'''Follow order {key} modification successful.
+                                              New trigger_price and price are {self.MD['follow'][key]['trigger_price']} and
+                                              {self.MD['follow'][key]['price']}.''')
+                            else:
+                                self.log.info(f"Follow order {key} modification unsuccessful.")
+                
                 if not row:
                     c.execute('''INSERT OR IGNORE INTO live (tradingsymbol, minute, openp, highp, lowp, closep, volume) VALUES (?,?,?,?,?,?,?) ''',
                         (tradingsymbol,minute,
@@ -122,6 +147,15 @@ class ShoonyaApi(NorenApi):
                                     )
                 if ret:
                     self.log.info(f"trailing order for {tick_data['norenordno']} is successful which is {ret['norenordno']}.")
+                    self.MD['follow'][ret['norenordno']]={'exchange':self.MD['trail'][tick_data['norenordno']]['exchange'],
+                                                        'tradingsymbol':self.MD['trail'][tick_data['norenordno']]['tradingsymbol'],
+                                                        'trigger_price':self.MD['trail'][tick_data['norenordno']]['trigger_price'],
+                                                        'price':self.MD['trail'][tick_data['norenordno']]['price'],
+                                                        'quantity':self.MD['trail'][tick_data['norenordno']]['quantity'],
+                                                        'price_type':self.MD['trail'][tick_data['norenordno']]['price_type'],
+                                                        }
+            if tick_data['norenordno'] in self.MD['follow'] and tick_data['status']=='COMPLETE':
+                del self.MD['follow'][tick_data['norenordno']]
         else:
             self.MD['df_orders'].loc[self.MD['df_orders'].index.max()+1]=[tick_data['norenordno'],
                                                     tick_data['tsym'],

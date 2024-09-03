@@ -149,41 +149,58 @@ def Live(name):
         }
         return jsonify(data)
 
-# /to/BEL?t=b&p=304.15&tp=304.05&slp=303.75&sltp=303.85
-@app.route('/to/<name>', methods = ['GET']) 
-def TrailOrder(name): 
+# /to/BANKEX2490961200PE?bos=b&p=304.15&tp=304.05&slp=303.75&sltp=303.85
+@app.route('/to/<tradingsymbol>', methods = ['GET']) 
+def TrailOrder(tradingsymbol:str): 
     if(request.method == 'GET'):
         if hasattr(api,'_NorenApi__username'):
             status = 'OK'
-            s = name.upper()
-            ins = Instrument(s)
-            match request.args.get('t'):
-                case 'b':
-                    ret = api.place_order(buy_or_sell='B', product_type='I',
-                                exchange='NSE', tradingsymbol='BEL-EQ', 
-                                quantity=1, discloseqty=0, price_type='SL-LMT', 
-                                price=float(request.args.get('p')), trigger_price=float(request.args.get('tp')),
-                                retention='DAY', remarks='place_order')
+            type = 'o' if (tradingsymbol.endswith('PE') or tradingsymbol.endswith('CE')) else 'e'
+            #for testing
+            type = 'mo'
+            match type:
+                case 'o':
+                    ret = api.place_order(buy_or_sell='B' if request.args.get('bos')=='b' else 'S',
+                                            product_type='M',
+                            exchange='BFO' if tradingsymbol.startswith('SENSEX') else 'NFO', tradingsymbol=tradingsymbol, 
+                            quantity=1, discloseqty=0, price_type='SL-LMT', 
+                            price=float(request.args.get('p')), trigger_price=float(request.args.get('tp')),
+                            retention='DAY', remarks='place_order')
                     if ret:
-                        api.trail_order(ret['norenordno'],buy_or_sell='S', product_type='I',
-                                exchange='NSE', tradingsymbol='BEL-EQ', 
-                                quantity=1, discloseqty=0, price_type='SL-LMT', 
-                                price=float(request.args.get('slp')), trigger_price=float(request.args.get('sltp')),
-                                retention='DAY', remarks='place_order')
-
-                case 's':
-                    ret = api.place_order(buy_or_sell='S', product_type='I',
-                                exchange='NSE', tradingsymbol='BEL-EQ', 
-                                quantity=1, discloseqty=0, price_type='MKT',
-                                retention='DAY', remarks='place_order')
+                        api.trail_order(ret['norenordno'],buy_or_sell='S' if request.args.get('bos')=='b' else 'B',
+                                        product_type='M',
+                            exchange='BFO' if tradingsymbol.startswith('SENSEX') else 'NFO', tradingsymbol=tradingsymbol, 
+                            quantity=1, discloseqty=0, price_type='SL-LMT', 
+                            price=float(request.args.get('slp')), trigger_price=float(request.args.get('sltp')),
+                            retention='DAY', remarks='place_order')
+                case 'mo':
+                    ret = api.place_order(buy_or_sell='B' if request.args.get('bos')=='b' else 'S',
+                                            product_type='M',
+                            exchange='MCX', tradingsymbol=tradingsymbol, 
+                            quantity=10, discloseqty=0, price_type='SL-LMT', 
+                            price=float(request.args.get('p')), trigger_price=float(request.args.get('tp')),
+                            retention='DAY', remarks='place_order')
                     if ret:
-                        api.trail_order(ret['norenordno'],buy_or_sell='B', product_type='I',
-                                exchange='NSE', tradingsymbol='BEL-EQ', 
-                                quantity=1, discloseqty=0, price_type='SL-LMT', 
-                                price=float(request.args.get('slp')), trigger_price=float(request.args.get('sltp')),
-                                retention='DAY', remarks='place_order')
-                case _:
-                    msg="Error in buy/sell parameter passing."
+                        api.trail_order(ret['norenordno'],buy_or_sell='S' if request.args.get('bos')=='b' else 'B',
+                                        product_type='M',
+                            exchange='MCX', tradingsymbol=tradingsymbol, 
+                            quantity=10, discloseqty=0, price_type='SL-LMT', 
+                            price=float(request.args.get('slp')), trigger_price=float(request.args.get('sltp')),
+                            retention='DAY', remarks='place_order')
+                case 'e':
+                    ret = api.place_order(buy_or_sell='B' if request.args.get('bos')=='b' else 'S',
+                                            product_type='I',
+                            exchange='NSE', tradingsymbol=tradingsymbol, 
+                            quantity=1, discloseqty=0, price_type='SL-LMT', 
+                            price=float(request.args.get('p')), trigger_price=float(request.args.get('tp')),
+                            retention='DAY', remarks='place_order')
+                    if ret:
+                        api.trail_order(ret['norenordno'],buy_or_sell='S' if request.args.get('bos')=='b' else 'B',
+                                        product_type='I',
+                            exchange='NSE', tradingsymbol=tradingsymbol, 
+                            quantity=1, discloseqty=0, price_type='SL-LMT', 
+                            price=float(request.args.get('slp')), trigger_price=float(request.args.get('sltp')),
+                            retention='DAY', remarks='place_order')
             
             msg = "Order punched."
         else:
