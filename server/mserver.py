@@ -2,7 +2,8 @@ from shoonya import ShoonyaApi, Instrument
 from logger import logger
 from flask import Flask,jsonify,request 
 from waitress import serve
-import os, yaml, sys, threading, datetime, time, random
+import os, yaml, sys, threading, datetime, time, random, csv
+from rich.prompt import Prompt
 
 app =   Flask(__name__) 
   
@@ -37,20 +38,7 @@ def Login():
         if hasattr(api,'_NorenApi__username'):
             msg = "Already loggedin."
         else:
-            with open("cred.yaml","r") as stream:
-                cred = yaml.safe_load(stream)
-                ret = api.login(cred['user'],cred['pwd'],request.args.get('totp'),cred['vc'],cred['apikey'],cred['imei'])
-                if not ret:
-                    status = 'NOK'
-                    msg = "Problemia while trying to log in."
-                elif ret['stat']=='Ok':
-                    msg = "Login successful."
-                    api.start_websocket(
-                            subscribe_callback=api.event_handler_feed_update, 
-                            order_update_callback=api.event_handler_order_update,
-                            socket_open_callback=api.open_callback,
-                            socket_close_callback=api.close_callback
-                        )
+            msg = api.login_using_totp_only(request.args.get('totp'))
         data = { 
             'Status' : status,
             'Msg' : msg, 
@@ -129,6 +117,40 @@ def StopAll():
         }
         return jsonify(data)
 
+
+@app.route('/fnolist', methods = ['GET']) 
+def FnOList():
+    if(request.method == 'GET'):
+        # Open the CSV file
+        with open('data/fnolots.csv', 'r') as csv_file:
+            # Create a CSV reader
+            csv_reader = csv.DictReader(csv_file)
+
+            # Create a list of dictionaries to store the JSON data
+            json_data = []
+
+            # Iterate over the CSV rows
+            for row in csv_reader:
+                # Append each row (as a dictionary) to the list
+                json_data.append(row)
+        return json_data
+
+@app.route('/orders', methods = ['GET']) 
+def Orders():
+    if(request.method == 'GET'):
+        if hasattr(api,'_NorenApi__username'):
+            status = 'OK'
+            r = api.display_orders()
+            msg = f"Orders display {'un' if not r else ''}successful."
+        else:
+            status = 'NOK'
+            msg = "Not logged in."
+        data = { 
+            'Status' : status,
+            'Msg' : msg,
+        }
+        return jsonify(data)
+
 @app.route('/s/<name>', methods = ['GET']) 
 def Live(name): 
     if(request.method == 'GET'):
@@ -149,56 +171,56 @@ def Live(name):
         }
         return jsonify(data)
 
-# /to/BANKEX2490961200PE?bos=b&p=304.15&tp=304.05&slp=303.75&sltp=303.85
+# /to/BANKEX2490961200PE?bos=b&q=10&p=304.15&tp=304.05&slp=303.75&sltp=303.85
 @app.route('/to/<tradingsymbol>', methods = ['GET']) 
 def TrailOrder(tradingsymbol:str): 
     if(request.method == 'GET'):
         if hasattr(api,'_NorenApi__username'):
             status = 'OK'
             type = 'o' if (tradingsymbol.endswith('PE') or tradingsymbol.endswith('CE')) else 'e'
-            #for testing
+            #for testing MCX option
             type = 'mo'
             match type:
                 case 'o':
                     ret = api.place_order(buy_or_sell='B' if request.args.get('bos')=='b' else 'S',
                                             product_type='M',
                             exchange='BFO' if tradingsymbol.startswith('SENSEX') else 'NFO', tradingsymbol=tradingsymbol, 
-                            quantity=1, discloseqty=0, price_type='SL-LMT', 
+                            quantity=int(request.args.get('q')), discloseqty=0, price_type='SL-LMT', 
                             price=float(request.args.get('p')), trigger_price=float(request.args.get('tp')),
                             retention='DAY', remarks='place_order')
                     if ret:
                         api.trail_order(ret['norenordno'],buy_or_sell='S' if request.args.get('bos')=='b' else 'B',
                                         product_type='M',
                             exchange='BFO' if tradingsymbol.startswith('SENSEX') else 'NFO', tradingsymbol=tradingsymbol, 
-                            quantity=1, discloseqty=0, price_type='SL-LMT', 
+                            quantity=int(request.args.get('q')), discloseqty=0, price_type='SL-LMT', 
                             price=float(request.args.get('slp')), trigger_price=float(request.args.get('sltp')),
                             retention='DAY', remarks='place_order')
                 case 'mo':
                     ret = api.place_order(buy_or_sell='B' if request.args.get('bos')=='b' else 'S',
                                             product_type='M',
                             exchange='MCX', tradingsymbol=tradingsymbol, 
-                            quantity=10, discloseqty=0, price_type='SL-LMT', 
+                            quantity=int(request.args.get('q')), discloseqty=0, price_type='SL-LMT', 
                             price=float(request.args.get('p')), trigger_price=float(request.args.get('tp')),
                             retention='DAY', remarks='place_order')
                     if ret:
                         api.trail_order(ret['norenordno'],buy_or_sell='S' if request.args.get('bos')=='b' else 'B',
                                         product_type='M',
                             exchange='MCX', tradingsymbol=tradingsymbol, 
-                            quantity=10, discloseqty=0, price_type='SL-LMT', 
+                            quantity=int(request.args.get('q')), discloseqty=0, price_type='SL-LMT', 
                             price=float(request.args.get('slp')), trigger_price=float(request.args.get('sltp')),
                             retention='DAY', remarks='place_order')
                 case 'e':
                     ret = api.place_order(buy_or_sell='B' if request.args.get('bos')=='b' else 'S',
                                             product_type='I',
                             exchange='NSE', tradingsymbol=tradingsymbol, 
-                            quantity=1, discloseqty=0, price_type='SL-LMT', 
+                            quantity=int(request.args.get('q')), discloseqty=0, price_type='SL-LMT', 
                             price=float(request.args.get('p')), trigger_price=float(request.args.get('tp')),
                             retention='DAY', remarks='place_order')
                     if ret:
                         api.trail_order(ret['norenordno'],buy_or_sell='S' if request.args.get('bos')=='b' else 'B',
                                         product_type='I',
                             exchange='NSE', tradingsymbol=tradingsymbol, 
-                            quantity=1, discloseqty=0, price_type='SL-LMT', 
+                            quantity=int(request.args.get('q')), discloseqty=0, price_type='SL-LMT', 
                             price=float(request.args.get('slp')), trigger_price=float(request.args.get('sltp')),
                             retention='DAY', remarks='place_order')
             
@@ -217,7 +239,9 @@ def initialize():
     global log, api 
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     log = logger()
-    api = ShoonyaApi()
+    aftermarket = Prompt.ask('After market',default = True)
+    totp = Prompt.ask('Enter TOTP')
+    api = ShoonyaApi(totp,aftermarket)
 
 def trade():
     log.info("Trading")

@@ -5,7 +5,7 @@ import sqlite3, datetime, time, pandas as pd, yaml
 
 class ShoonyaApi(NorenApi):
     
-    def __init__(self):
+    def __init__(self,TOTP,aftermarket):
         NorenApi.__init__(self, host='https://api.shoonya.com/NorenWClientTP/',
                           websocket='wss://api.shoonya.com/NorenWSTP/')
         self.feedOpen = False
@@ -14,8 +14,81 @@ class ShoonyaApi(NorenApi):
         self.MD = {'orders':{},'ltp':{},'tradingsymbol':{},'liveTableExists':False, 'infoTableExists':False,
           'listtokens':[],'df_orders':None, 'df_holdings':None,'df_positions':None,
           'trail':{},'follow':{}}
-        
+        with open("instruments.yaml","r") as stream:
+            instruments = yaml.safe_load(stream)
+            for instrument in instruments:
+                for key, value in instrument.items():
+                    for exch, token in value.items():
+                        tradingsymbol = f"{key}-EQ" if exch =='NSE' else key
+                        self.MD['listtokens'].append(f"{exch}|{token}|{tradingsymbol}")
+        #for after market hours but code duplicacy
+        if aftermarket:
+            self.login_using_totp_only(TOTP)
+            self.log.info(self.MD)
+            #create info table
+            c = self.connMem.cursor()
+            c.execute('''CREATE TABLE IF NOT EXISTS info (
+                            tradingsymbol TEXT,
+                            ucp INTEGER,
+                            lcp INTEGER,
+                            PRIMARY KEY (tradingsymbol)
+                                )''')
+            for i in self.MD['listtokens']:
+                c.execute('''INSERT OR IGNORE INTO info (tradingsymbol, ucp, lcp) VALUES (?,?,?)''',
+                        (i.rsplit('|', 1)[1],0,0))
+            self.connMem.commit()
+            self.MD['infoTableExists'] = True
+            if not self.MD['liveTableExists'] and self.MD['infoTableExists']:
+                c.execute('''CREATE TABLE IF NOT EXISTS live (
+                    tradingsymbol TEXT,
+                    minute INTEGER,
+                    openp INTEGER,
+                    highp INTEGER,
+                    lowp INTEGER,
+                    closep INTEGER,
+                    volume INTEGER,
+                    PRIMARY KEY (tradingsymbol,minute)
+                    )''')
+                self.connMem.commit()
+                self.MD['liveTableExists'] = True
+                lastBusDay = datetime.datetime.today()
+                lastBusDay = lastBusDay.replace(day=6,hour=0, minute=0, second=0, microsecond=0)
+                
+                for tkn in self.MD['listtokens']:
+                    exchange = tkn.split('|')[0]
+                    token = tkn.split('|')[1]
+                    tradingsymbol = tkn.split('|')[2]
+                    ret = self.get_time_price_series(exchange=exchange, token=token, starttime=lastBusDay.timestamp(), interval=1)
+                    if ret:
+                        for row in ret:
+                            if row['stat']=='Ok':
+                                tm = datetime.datetime.strptime(row['time'],'%d-%m-%Y %H:%M:%S')
+                                minute = SharedMethods.m0915(tm.hour,tm.minute)
+                                c.execute('''INSERT OR IGNORE INTO live (tradingsymbol, minute, openp, highp, lowp, closep, volume) VALUES (?,?,?,?,?,?,?) ''',
+                                    (tradingsymbol,minute,
+                                    SharedMethods.rp(row['into']),
+                                    SharedMethods.rp(row['inth']),
+                                    SharedMethods.rp(row['intl']),
+                                    SharedMethods.rp(row['intc']),
+                                    int(row['intv'])))
+                self.connMem.commit()
 
+    def login_using_totp_only(self,TOTP):
+        with open("cred.yaml","r") as stream:
+            cred = yaml.safe_load(stream)
+            ret = self.login(cred['user'],cred['pwd'],TOTP,cred['vc'],cred['apikey'],cred['imei'])
+            if not ret:
+                msg = "Problemia while trying to log in."
+            elif ret['stat']=='Ok':
+                msg = "Login successful."
+                self.start_websocket(
+                        subscribe_callback=self.event_handler_feed_update, 
+                        order_update_callback=self.event_handler_order_update,
+                        socket_open_callback=self.open_callback,
+                        socket_close_callback=self.close_callback
+                    )
+            return msg
+        
     def event_handler_feed_update(self,tick_data):
         if not self.feedOpen:
             return
@@ -30,7 +103,7 @@ class ShoonyaApi(NorenApi):
                 self.MD['df_orders'] = self.store_orders_data(reto)
                 self.log.info("Orders stored.")
         c = self.connMem.cursor()
-        if tick_data['t']=='dk':
+        if tick_data['t']=='dk' and not self.MD['infoTableExists']:
             self.MD['tradingsymbol'][tick_data['tk']]=tick_data['ts']
             c.execute('''CREATE TABLE IF NOT EXISTS info (
                         tradingsymbol TEXT,
@@ -38,8 +111,9 @@ class ShoonyaApi(NorenApi):
                         lcp INTEGER,
                         PRIMARY KEY (tradingsymbol)
                             )''')
-            c.execute('''INSERT OR IGNORE INTO info (tradingsymbol, ucp, lcp) VALUES (?,?,?)''',
-                    (tick_data['ts'],SharedMethods.rp(tick_data['uc']),SharedMethods.rp(tick_data['lc'])))
+            if 'uc' in tick_data:
+                c.execute('''INSERT OR IGNORE INTO info (tradingsymbol, ucp, lcp) VALUES (?,?,?)''',
+                        (tick_data['ts'],SharedMethods.rp(tick_data['uc']),SharedMethods.rp(tick_data['lc'])))
             self.connMem.commit()
             self.MD['infoTableExists'] = True
         if tick_data['t']=='df' and not self.MD['liveTableExists'] and self.MD['infoTableExists']:    
@@ -62,17 +136,18 @@ class ShoonyaApi(NorenApi):
                 exchange = tkn.split('|')[0]
                 token = tkn.split('|')[1]
                 ret = self.get_time_price_series(exchange=exchange, token=token, starttime=lastBusDay.timestamp(), interval=1)
-                for row in ret:
-                    if row['stat']=='Ok':
-                        tm = datetime.datetime.strptime(row['time'],'%d-%m-%Y %H:%M:%S')
-                        minute = SharedMethods.m0915(tm.hour,tm.minute)
-                        c.execute('''INSERT OR IGNORE INTO live (tradingsymbol, minute, openp, highp, lowp, closep, volume) VALUES (?,?,?,?,?,?,?) ''',
-                            (self.MD['tradingsymbol'][token],minute,
-                            SharedMethods.rp(row['into']),
-                            SharedMethods.rp(row['inth']),
-                            SharedMethods.rp(row['intl']),
-                            SharedMethods.rp(row['intc']),
-                            int(row['intv'])))
+                if ret:
+                    for row in ret:
+                        if row['stat']=='Ok':
+                            tm = datetime.datetime.strptime(row['time'],'%d-%m-%Y %H:%M:%S')
+                            minute = SharedMethods.m0915(tm.hour,tm.minute)
+                            c.execute('''INSERT OR IGNORE INTO live (tradingsymbol, minute, openp, highp, lowp, closep, volume) VALUES (?,?,?,?,?,?,?) ''',
+                                (self.MD['tradingsymbol'][token],minute,
+                                SharedMethods.rp(row['into']),
+                                SharedMethods.rp(row['inth']),
+                                SharedMethods.rp(row['intl']),
+                                SharedMethods.rp(row['intc']),
+                                int(row['intv'])))
             self.connMem.commit()
         if self.MD['liveTableExists'] and self.MD['infoTableExists'] and 'ft' in tick_data:    
             tm = time.localtime(int(tick_data['ft']))
@@ -194,20 +269,17 @@ class ShoonyaApi(NorenApi):
     def open_callback(self):
         self.feedOpen = True
         self.log.info('Feed is Open')
-        with open("instruments.yaml","r") as stream:
-            instruments = yaml.safe_load(stream)
-            for instrument in instruments:
-                for key, value in instrument.items():
-                    for exch, token in value.items():
-                        tradingsymbol = f"{key}-EQ" if exch =='NSE' else key
-                        self.MD['listtokens'].append(f"{exch}|{token}|{tradingsymbol}")
         self.subscribe([i.rsplit('|', 1)[0] for i in self.MD['listtokens']],feed_type=2)
 
     def close_callback(self):
         self.feedOpen = False
         self.log.info('Feed is Close')
         self.connMem.close()
-
+    #incomplete
+    def display_orders(self):
+        self.log.info(self.MD['df_orders'])
+        return True
+        
     # incomplete
     def stop_all(self):
         openposcount = 0
