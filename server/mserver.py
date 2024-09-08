@@ -156,12 +156,12 @@ def Live(name):
     if(request.method == 'GET'):
         if hasattr(api,'_NorenApi__username'):
             status = 'OK'
-            s = name.upper()
+            s = name.upper().rsplit('-')[0]
             ins = Instrument(s)
             msg = { "Instrument":s,
                     "LTP":api.MD["ltp"][ins.tradename] if ins.tradename in api.MD["ltp"] else None,
-                    "Test":ir,
-                    "PriceLine":ins.priceline()}
+                    "PriceLine":ins.priceline(),
+                    "OHLCV":{0:(2,5,2,5,500),1:(5,6,2,3,300)}}
         else:
             status = 'NOK'
             msg = "Not logged in."
@@ -239,17 +239,15 @@ def initialize():
     global log, api 
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     log = logger()
-    aftermarket = Prompt.ask('After market',default = True)
+    aftermarket = True if Prompt.ask('After market',default = 'y') == 'y' else False
     totp = Prompt.ask('Enter TOTP')
-    api = ShoonyaApi(totp,aftermarket)
+    api = ShoonyaApi(totp, aftermarket)
 
 def trade():
     log.info("Trading")
-    global ir
     while True:
         now = datetime.datetime.now()
         time.sleep(1)
-        ir = random.randint(10,50)    
         # print(s.spot)
         
 

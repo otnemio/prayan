@@ -13,7 +13,7 @@ class ShoonyaApi(NorenApi):
         self.connMem = sqlite3.connect(':memory:', check_same_thread=False)
         self.MD = {'orders':{},'ltp':{},'tradingsymbol':{},'liveTableExists':False, 'infoTableExists':False,
           'listtokens':[],'df_orders':None, 'df_holdings':None,'df_positions':None,
-          'trail':{},'follow':{}}
+          'trail':{},'follow':{},'timed':{}}
         with open("instruments.yaml","r") as stream:
             instruments = yaml.safe_load(stream)
             for instrument in instruments:
@@ -64,6 +64,8 @@ class ShoonyaApi(NorenApi):
                             if row['stat']=='Ok':
                                 tm = datetime.datetime.strptime(row['time'],'%d-%m-%Y %H:%M:%S')
                                 minute = SharedMethods.m0915(tm.hour,tm.minute)
+                                if minute == 375:
+                                    self.MD["ltp"][tradingsymbol]=SharedMethods.rp(row['intc'])
                                 c.execute('''INSERT OR IGNORE INTO live (tradingsymbol, minute, openp, highp, lowp, closep, volume) VALUES (?,?,?,?,?,?,?) ''',
                                     (tradingsymbol,minute,
                                     SharedMethods.rp(row['into']),
@@ -160,7 +162,7 @@ class ShoonyaApi(NorenApi):
                 
                 self.MD["ltp"][tradingsymbol]=float(tick_data['lp'])
                 
-                #trail
+                # trail
                 # if diff between current price and followed price is getting bigger then make it smaller
                 for key,val in self.MD['follow'].items():
                     if val['tradingsymbol']==tradingsymbol:
@@ -185,6 +187,13 @@ class ShoonyaApi(NorenApi):
                             else:
                                 self.log.info(f"Follow order {key} modification unsuccessful.")
                 
+                #timed expiry
+                for key,val in self.MD['timed'].items():
+                    if val['tradingsymbol']==tradingsymbol:
+                        if val['expiry']<datetime.datetime.now():
+                            #cancel
+                            r = self.cancel_order(key)
+                            del self.MD['timed'][key]
                 if not row:
                     c.execute('''INSERT OR IGNORE INTO live (tradingsymbol, minute, openp, highp, lowp, closep, volume) VALUES (?,?,?,?,?,?,?) ''',
                         (tradingsymbol,minute,
@@ -231,6 +240,9 @@ class ShoonyaApi(NorenApi):
                                                         }
             if tick_data['norenordno'] in self.MD['follow'] and tick_data['status']=='COMPLETE':
                 del self.MD['follow'][tick_data['norenordno']]
+            if tick_data['norenordno'] in self.MD['timed'] and tick_data['status']=='COMPLETE':
+                del self.MD['timed'][tick_data['norenordno']]
+            
         else:
             self.MD['df_orders'].loc[self.MD['df_orders'].index.max()+1]=[tick_data['norenordno'],
                                                     tick_data['tsym'],
@@ -316,6 +328,10 @@ class ShoonyaApi(NorenApi):
                                 'exchange':exchange, 
                                 'quantity':quantity, 'discloseqty':discloseqty, 'price_type':price_type, 
                                 'retention':retention, 'remarks':remarks}
+    
+    def make_timed(self,orderno:str,expiry:int,tradingsymbol:str):
+        self.MD['timed'][orderno]={'expiry':datetime.datetime.now()+datetime.timedelta(0,expiry),
+                                   'tradingsymbol':tradingsymbol}
 
 class Instrument():
     name:str
