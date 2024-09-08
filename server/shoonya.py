@@ -13,7 +13,7 @@ class ShoonyaApi(NorenApi):
         self.connMem = sqlite3.connect(':memory:', check_same_thread=False)
         self.MD = {'orders':{},'ltp':{},'tradingsymbol':{},'liveTableExists':False, 'infoTableExists':False,
           'listtokens':[],'df_orders':None, 'df_holdings':None,'df_positions':None,
-          'trail':{},'follow':{},'timed':{}}
+          'trailable':{},'follow':{},'forward':{},'timed':{}}
         with open("instruments.yaml","r") as stream:
             instruments = yaml.safe_load(stream)
             for instrument in instruments:
@@ -216,32 +216,53 @@ class ShoonyaApi(NorenApi):
         
         if self.MD['df_orders']['orderno'].str.contains(tick_data['norenordno']).any():
             self.MD['df_orders'].loc[self.MD['df_orders']['orderno']==tick_data['norenordno'],'status']=tick_data['status']
-            if tick_data['norenordno'] in self.MD['trail'] and tick_data['status']=='COMPLETE':
-                ret = self.place_order(buy_or_sell=self.MD['trail'][tick_data['norenordno']]['buy_or_sell'],
-                                    product_type=self.MD['trail'][tick_data['norenordno']]['product_type'],
-                                    exchange=self.MD['trail'][tick_data['norenordno']]['exchange'],
-                                    tradingsymbol=self.MD['trail'][tick_data['norenordno']]['tradingsymbol'],
-                                    quantity=self.MD['trail'][tick_data['norenordno']]['quantity'],
-                                    discloseqty=self.MD['trail'][tick_data['norenordno']]['discloseqty'],
-                                    price_type=self.MD['trail'][tick_data['norenordno']]['price_type'],
-                                    price=self.MD['trail'][tick_data['norenordno']]['price'],
-                                    trigger_price=self.MD['trail'][tick_data['norenordno']]['trigger_price'],
-                                    retention=self.MD['trail'][tick_data['norenordno']]['retention'],
-                                    remarks=self.MD['trail'][tick_data['norenordno']]['remarks']
+            if tick_data['norenordno'] in self.MD['trailable'] and tick_data['status']=='COMPLETE':
+                ret = self.place_order(buy_or_sell=self.MD['trailable'][tick_data['norenordno']]['buy_or_sell'],
+                                    product_type=self.MD['trailable'][tick_data['norenordno']]['product_type'],
+                                    exchange=self.MD['trailable'][tick_data['norenordno']]['exchange'],
+                                    tradingsymbol=self.MD['trailable'][tick_data['norenordno']]['tradingsymbol'],
+                                    quantity=self.MD['trailable'][tick_data['norenordno']]['quantity'],
+                                    discloseqty=self.MD['trailable'][tick_data['norenordno']]['discloseqty'],
+                                    price_type=self.MD['trailable'][tick_data['norenordno']]['price_type'],
+                                    price=self.MD['trailable'][tick_data['norenordno']]['price'],
+                                    trigger_price=self.MD['trailable'][tick_data['norenordno']]['trigger_price'],
+                                    retention=self.MD['trailable'][tick_data['norenordno']]['retention'],
+                                    remarks=self.MD['trailable'][tick_data['norenordno']]['remarks']
                                     )
                 if ret:
                     self.log.info(f"trailing order for {tick_data['norenordno']} is successful which is {ret['norenordno']}.")
-                    self.MD['follow'][ret['norenordno']]={'exchange':self.MD['trail'][tick_data['norenordno']]['exchange'],
-                                                        'tradingsymbol':self.MD['trail'][tick_data['norenordno']]['tradingsymbol'],
-                                                        'trigger_price':self.MD['trail'][tick_data['norenordno']]['trigger_price'],
-                                                        'price':self.MD['trail'][tick_data['norenordno']]['price'],
-                                                        'quantity':self.MD['trail'][tick_data['norenordno']]['quantity'],
-                                                        'price_type':self.MD['trail'][tick_data['norenordno']]['price_type'],
+                    self.MD['follow'][ret['norenordno']]={'exchange':self.MD['trailable'][tick_data['norenordno']]['exchange'],
+                                                        'tradingsymbol':self.MD['trailable'][tick_data['norenordno']]['tradingsymbol'],
+                                                        'trigger_price':self.MD['trailable'][tick_data['norenordno']]['trigger_price'],
+                                                        'price':self.MD['trailable'][tick_data['norenordno']]['price'],
+                                                        'quantity':self.MD['trailable'][tick_data['norenordno']]['quantity'],
+                                                        'price_type':self.MD['trailable'][tick_data['norenordno']]['price_type'],
                                                         }
+                retf = self.place_order(buy_or_sell=self.MD['forward'][tick_data['norenordno']]['buy_or_sell'],
+                                    product_type=self.MD['forward'][tick_data['norenordno']]['product_type'],
+                                    exchange=self.MD['forward'][tick_data['norenordno']]['exchange'],
+                                    tradingsymbol=self.MD['forward'][tick_data['norenordno']]['tradingsymbol'],
+                                    quantity=self.MD['forward'][tick_data['norenordno']]['quantity'],
+                                    discloseqty=self.MD['forward'][tick_data['norenordno']]['discloseqty'],
+                                    price_type=self.MD['forward'][tick_data['norenordno']]['price_type'],
+                                    price=self.MD['forward'][tick_data['norenordno']]['price'],
+                                    retention=self.MD['forward'][tick_data['norenordno']]['retention'],
+                                    remarks=self.MD['forward'][tick_data['norenordno']]['remarks']
+                                    )
+                if retf:
+                    self.log.info(f"forward order for {tick_data['norenordno']} is successful which is {retf['norenordno']}.")
+                    self.make_timed(retf['norenordno'],10,self.MD['forward'][tick_data['norenordno']]['tradingsymbol'])
+                    self.attach_sl(retf['norenordno'],ret['norenordno'])
+                
             if tick_data['norenordno'] in self.MD['follow'] and tick_data['status']=='COMPLETE':
                 del self.MD['follow'][tick_data['norenordno']]
             if tick_data['norenordno'] in self.MD['timed'] and tick_data['status']=='COMPLETE':
                 del self.MD['timed'][tick_data['norenordno']]
+            if tick_data['norenordno'] in self.MD['forward'] and tick_data['status']=='COMPLETE':
+                #reduce follow
+                self.MD['follow'][self.MD['forward'][tick_data['norenordno']]['sl']]['quantity'] -= self.MD['forward'][tick_data['norenordno']]['quantity']
+                del self.MD['forward'][tick_data['norenordno']]
+            
             
         else:
             self.MD['df_orders'].loc[self.MD['df_orders'].index.max()+1]=[tick_data['norenordno'],
@@ -323,7 +344,17 @@ class ShoonyaApi(NorenApi):
                                 exchange='NSE', 
                                 quantity=1, discloseqty=0, price_type='SL-LMT', 
                                 retention='DAY', remarks='place_order'):
-        self.MD['trail'][orderno]={'tradingsymbol':tradingsymbol,'price':price,'trigger_price':trigger_price,
+        self.MD['trailable'][orderno]={'tradingsymbol':tradingsymbol,'price':price,'trigger_price':trigger_price,
+                                   'buy_or_sell':buy_or_sell,'product_type':product_type,
+                                'exchange':exchange, 
+                                'quantity':quantity, 'discloseqty':discloseqty, 'price_type':price_type, 
+                                'retention':retention, 'remarks':remarks}
+    def forward_order(self,orderno:str,tradingsymbol:str, price:float,
+                    buy_or_sell:str, product_type='I',
+                                exchange='NSE', 
+                                quantity=1, discloseqty=0, price_type='LMT', 
+                                retention='DAY', remarks='place_order'):
+        self.MD['forward'][orderno]={'tradingsymbol':tradingsymbol,'price':price,
                                    'buy_or_sell':buy_or_sell,'product_type':product_type,
                                 'exchange':exchange, 
                                 'quantity':quantity, 'discloseqty':discloseqty, 'price_type':price_type, 
@@ -332,7 +363,8 @@ class ShoonyaApi(NorenApi):
     def make_timed(self,orderno:str,expiry:int,tradingsymbol:str):
         self.MD['timed'][orderno]={'expiry':datetime.datetime.now()+datetime.timedelta(0,expiry),
                                    'tradingsymbol':tradingsymbol}
-
+    def attach_sl(self,orderno:str,slorderno:str):
+        self.MD['forward'][orderno]={'sl':slorderno}
 class Instrument():
     name:str
     exch:str
