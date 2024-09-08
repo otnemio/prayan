@@ -171,7 +171,7 @@ def Live(name):
         }
         return jsonify(data)
 
-# /to/BANKEX2490961200PE?bos=b&q=10&p=304.15&tp=304.05&slp=303.75&sltp=303.85
+# /to/BANKEX2490961200PE?bos=b&q=20&fq=10&p=304.15&tp=304.05&slp=303.75&sltp=303.85&fp=305
 @app.route('/to/<tradingsymbol>', methods = ['GET']) 
 def TrailOrder(tradingsymbol:str): 
     if(request.method == 'GET'):
@@ -179,7 +179,7 @@ def TrailOrder(tradingsymbol:str):
             status = 'OK'
             type = 'o' if (tradingsymbol.endswith('PE') or tradingsymbol.endswith('CE')) else 'e'
             #for testing MCX option
-            type = 'mo'
+            # type = 'mo'
             match type:
                 case 'o':
                     ret = api.place_order(buy_or_sell='B' if request.args.get('bos')=='b' else 'S',
@@ -198,8 +198,8 @@ def TrailOrder(tradingsymbol:str):
                         api.forward_order(ret['norenordno'],buy_or_sell='S' if request.args.get('bos')=='b' else 'B',
                                         product_type='M',
                             exchange='BFO' if tradingsymbol.startswith('SENSEX') else 'NFO', tradingsymbol=tradingsymbol, 
-                            quantity=int(request.args.get('q')), discloseqty=0, price_type='LMT', 
-                            price=float(request.args.get('slp')),
+                            quantity=int(request.args.get('fq')), discloseqty=0, price_type='LMT', 
+                            price=float(request.args.get('fp')),
                             retention='DAY', remarks='place_order')
                 case 'mo':
                     ret = api.place_order(buy_or_sell='B' if request.args.get('bos')=='b' else 'S',
@@ -218,8 +218,8 @@ def TrailOrder(tradingsymbol:str):
                         api.forward_order(ret['norenordno'],buy_or_sell='S' if request.args.get('bos')=='b' else 'B',
                                         product_type='M',
                             exchange='MCX', tradingsymbol=tradingsymbol, 
-                            quantity=int(request.args.get('q')), discloseqty=0, price_type='LMT', 
-                            price=float(request.args.get('slp')),
+                            quantity=int(request.args.get('fq')), discloseqty=0, price_type='LMT', 
+                            price=float(request.args.get('fp')),
                             retention='DAY', remarks='place_order')
                 case 'e':
                     ret = api.place_order(buy_or_sell='B' if request.args.get('bos')=='b' else 'S',
@@ -238,8 +238,8 @@ def TrailOrder(tradingsymbol:str):
                         api.forward_order(ret['norenordno'],buy_or_sell='S' if request.args.get('bos')=='b' else 'B',
                                         product_type='I',
                             exchange='NSE', tradingsymbol=tradingsymbol, 
-                            quantity=int(request.args.get('q')), discloseqty=0, price_type='LMT', 
-                            price=float(request.args.get('slp')),
+                            quantity=int(request.args.get('fq')), discloseqty=0, price_type='LMT', 
+                            price=float(request.args.get('fp')),
                             retention='DAY', remarks='place_order')
             
             msg = "Order punched."
