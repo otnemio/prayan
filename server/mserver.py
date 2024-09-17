@@ -270,7 +270,6 @@ def trade():
         
 
 if __name__=='__main__':
-    # app.run(debug=True)
     initialize()
     t = threading.Thread(target=trade,args=())
     t.start()
