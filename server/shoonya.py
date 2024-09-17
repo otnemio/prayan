@@ -1,13 +1,14 @@
 from NorenRestApiPy.NorenApi import NorenApi
 from logger import logger
 from sharedmethods import SharedMethods
-import sqlite3, datetime, time, pandas as pd, yaml
+import sqlite3, datetime, time, pandas as pd, yaml, warnings
 
 class ShoonyaApi(NorenApi):
     
     def __init__(self,TOTP,aftermarket):
         NorenApi.__init__(self, host='https://api.shoonya.com/NorenWClientTP/',
                           websocket='wss://api.shoonya.com/NorenWSTP/')
+        warnings.filterwarnings('ignore', category=pd.errors.SettingWithCopyWarning)
         self.feedOpen = False
         self.aftermarket = aftermarket
         self.log = logger()
@@ -22,6 +23,7 @@ class ShoonyaApi(NorenApi):
                     for exch, token in value.items():
                         tradingsymbol = f"{key}-EQ" if exch =='NSE' else key
                         self.MD['listtokens'].append(f"{exch}|{token}|{tradingsymbol}")
+                        self.MD['tradingsymbol'][f"{token}"]=tradingsymbol
         #for after market hours but code duplicacy
         if aftermarket:
             self.login_using_totp_only(TOTP)
@@ -53,12 +55,13 @@ class ShoonyaApi(NorenApi):
                 self.connMem.commit()
                 self.MD['liveTableExists'] = True
                 lastBusDay = datetime.datetime.today()
-                lastBusDay = lastBusDay.replace(day=6,hour=0, minute=0, second=0, microsecond=0)
+                lastBusDay = lastBusDay.replace(day=12,hour=0, minute=0, second=0, microsecond=0)
                 
                 for tkn in self.MD['listtokens']:
                     exchange = tkn.split('|')[0]
                     token = tkn.split('|')[1]
                     tradingsymbol = tkn.split('|')[2]
+                    self.log.info(tradingsymbol)
                     ret = self.get_time_price_series(exchange=exchange, token=token, starttime=lastBusDay.timestamp(), interval=1)
                     if ret:
                         for row in ret:
@@ -75,6 +78,7 @@ class ShoonyaApi(NorenApi):
                                     SharedMethods.rp(row['intc']),
                                     int(row['intv'])))
                 self.connMem.commit()
+            self.analyse_data()
 
     def login_using_totp_only(self,TOTP):
         with open("cred.yaml","r") as stream:
@@ -107,7 +111,7 @@ class ShoonyaApi(NorenApi):
                 self.log.info("Orders stored.")
         c = self.connMem.cursor()
         if tick_data['t']=='dk' and not self.MD['infoTableExists']:
-            self.MD['tradingsymbol'][tick_data['tk']]=tick_data['ts']
+            # self.MD['tradingsymbol'][tick_data['tk']]=tick_data['ts']
             c.execute('''CREATE TABLE IF NOT EXISTS info (
                         tradingsymbol TEXT,
                         ucp INTEGER,
@@ -210,7 +214,7 @@ class ShoonyaApi(NorenApi):
                     c.execute('''UPDATE live SET highp = ?, lowp = ?, closep =?, volume =? WHERE tradingsymbol = ? AND minute =?''',
                     (nhighp,nlowp,nclosep,1,tradingsymbol,minute))
                 self.connMem.commit()
-
+    
     def event_handler_order_update(self,tick_data):
         if not self.feedOpen:
             return
@@ -332,6 +336,34 @@ class ShoonyaApi(NorenApi):
         self.feedOpen = False
         self.log.info('Feed is Close')
         self.connMem.close()
+    
+    def analyse_data(self):
+        
+
+        df = pd.read_sql_query("SELECT * FROM live ORDER BY tradingsymbol,minute DESC", self.connMem)
+        df['heightprcnt T'] = (df.highp -df.lowp)*100/df.highp
+        for key in df.groupby('tradingsymbol').groups.keys():
+            # self.log.info(key)
+            dft = df.loc[df['tradingsymbol']==key]
+            dft['heightprcnt T-1'] = dft['heightprcnt T'].shift(-1)
+            dft['heightprcnt T-2'] = dft['heightprcnt T'].shift(-2)
+            dft['heightprcnt T-3'] = dft['heightprcnt T'].shift(-3)
+            dft['heightprcnt T-4'] = dft['heightprcnt T'].shift(-4)
+            dft['heightprcnt True'] =  ((dft['heightprcnt T'] <0.02) & (dft['heightprcnt T-1'] <0.02) &  (dft['heightprcnt T-2'] <0.02) &  
+                                        (dft['heightprcnt T-3'] <0.02) & (dft['heightprcnt T-4'] >0.02))
+            self.log.info(dft[dft['heightprcnt True']==True][['minute','tradingsymbol','openp','closep','highp','lowp']])
+            
+            # self.log.info(dft)
+        # if (df['minute']==375):
+        #     small = True
+        #     for i in range(5):
+        #         if not (df[df['minute']==375-i]['heightprcnt']<0.05):
+        #             small = False
+        #     if small == True:
+        #         self.log.info('Yes')
+        
+        # df.loc[df['tradingsymbol']=='BEL-EQ']
+    
     #incomplete
     def display_orders(self):
         self.log.info(self.MD['df_orders'])

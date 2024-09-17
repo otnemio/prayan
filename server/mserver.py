@@ -171,16 +171,13 @@ def Live(name):
         }
         return jsonify(data)
 
-# /to/BANKEX2490961200PE?bos=b&q=20&fq=10&p=304.15&tp=304.05&slp=303.75&sltp=303.85&fp=305
+# /to/BANKEX2490961200PE?bos=b&t=o&q=20&fq=10&p=304.15&tp=304.05&slp=303.75&sltp=303.85&fp=305
 @app.route('/to/<tradingsymbol>', methods = ['GET']) 
 def TrailOrder(tradingsymbol:str): 
     if(request.method == 'GET'):
         if hasattr(api,'_NorenApi__username'):
             status = 'OK'
-            type = 'o' if (tradingsymbol.endswith('PE') or tradingsymbol.endswith('CE')) else 'e'
-            #for testing MCX option
-            # type = 'mo'
-            match type:
+            match request.args.get('t'):
                 case 'o':
                     ret = api.place_order(buy_or_sell='B' if request.args.get('bos')=='b' else 'S',
                                             product_type='M',
@@ -189,6 +186,7 @@ def TrailOrder(tradingsymbol:str):
                             price=float(request.args.get('p')), trigger_price=float(request.args.get('tp')),
                             retention='DAY', remarks='place_order')
                     if ret:
+                        api.log.info(f"Trail order placed successfully {ret['norenordno']}")
                         api.trail_order(ret['norenordno'],buy_or_sell='S' if request.args.get('bos')=='b' else 'B',
                                         product_type='M',
                             exchange='BFO' if tradingsymbol.startswith('SENSEX') else 'NFO', tradingsymbol=tradingsymbol, 
@@ -209,6 +207,7 @@ def TrailOrder(tradingsymbol:str):
                             price=float(request.args.get('p')), trigger_price=float(request.args.get('tp')),
                             retention='DAY', remarks='place_order')
                     if ret:
+                        api.log.info(f"Trail order placed successfully {ret['norenordno']}")
                         api.trail_order(ret['norenordno'],buy_or_sell='S' if request.args.get('bos')=='b' else 'B',
                                         product_type='M',
                             exchange='MCX', tradingsymbol=tradingsymbol, 
@@ -229,6 +228,7 @@ def TrailOrder(tradingsymbol:str):
                             price=float(request.args.get('p')), trigger_price=float(request.args.get('tp')),
                             retention='DAY', remarks='place_order')
                     if ret:
+                        api.log.info(f"Trail order placed successfully {ret['norenordno']}")
                         api.trail_order(ret['norenordno'],buy_or_sell='S' if request.args.get('bos')=='b' else 'B',
                                         product_type='I',
                             exchange='NSE', tradingsymbol=tradingsymbol, 
