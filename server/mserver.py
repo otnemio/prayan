@@ -117,6 +117,21 @@ def StopAll():
         }
         return jsonify(data)
 
+@app.route('/aftermarket', methods = ['GET']) 
+def AfterMarket():
+    if(request.method == 'GET'):
+        if hasattr(api,'_NorenApi__username'):
+            status = 'OK'
+            msg = api.aftermarket()
+        else:
+            status = 'NOK'
+            msg = "Not logged in."
+        data = { 
+            'Status' : status,
+            'Msg' : msg,
+        }
+        return jsonify(data)
+
 
 @app.route('/fnolist', methods = ['GET']) 
 def FnOList():
@@ -257,9 +272,7 @@ def initialize():
     global log, api 
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     log = logger()
-    aftermarket = True if Prompt.ask('After market',default = 'y') == 'y' else False
-    totp = Prompt.ask('Enter TOTP')
-    api = ShoonyaApi(totp, aftermarket)
+    api = ShoonyaApi()
 
 def trade():
     log.info("Trading")

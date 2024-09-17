@@ -5,12 +5,12 @@ import sqlite3, datetime, time, pandas as pd, yaml, warnings
 
 class ShoonyaApi(NorenApi):
     
-    def __init__(self,TOTP,aftermarket):
+    def __init__(self):
         NorenApi.__init__(self, host='https://api.shoonya.com/NorenWClientTP/',
                           websocket='wss://api.shoonya.com/NorenWSTP/')
         warnings.filterwarnings('ignore', category=pd.errors.SettingWithCopyWarning)
         self.feedOpen = False
-        self.aftermarket = aftermarket
+        self.af = False
         self.log = logger()
         self.connMem = sqlite3.connect(':memory:', check_same_thread=False)
         self.MD = {'orders':{},'ltp':{},'tradingsymbol':{},'liveTableExists':False, 'infoTableExists':False,
@@ -24,62 +24,6 @@ class ShoonyaApi(NorenApi):
                         tradingsymbol = f"{key}-EQ" if exch =='NSE' else key
                         self.MD['listtokens'].append(f"{exch}|{token}|{tradingsymbol}")
                         self.MD['tradingsymbol'][f"{token}"]=tradingsymbol
-        #for after market hours but code duplicacy
-        if aftermarket:
-            self.login_using_totp_only(TOTP)
-            self.log.info(self.MD)
-            #create info table
-            c = self.connMem.cursor()
-            c.execute('''CREATE TABLE IF NOT EXISTS info (
-                            tradingsymbol TEXT,
-                            ucp INTEGER,
-                            lcp INTEGER,
-                            PRIMARY KEY (tradingsymbol)
-                                )''')
-            for i in self.MD['listtokens']:
-                c.execute('''INSERT OR IGNORE INTO info (tradingsymbol, ucp, lcp) VALUES (?,?,?)''',
-                        (i.rsplit('|', 1)[1],0,0))
-            self.connMem.commit()
-            self.MD['infoTableExists'] = True
-            if not self.MD['liveTableExists'] and self.MD['infoTableExists']:
-                c.execute('''CREATE TABLE IF NOT EXISTS live (
-                    tradingsymbol TEXT,
-                    minute INTEGER,
-                    openp INTEGER,
-                    highp INTEGER,
-                    lowp INTEGER,
-                    closep INTEGER,
-                    volume INTEGER,
-                    PRIMARY KEY (tradingsymbol,minute)
-                    )''')
-                self.connMem.commit()
-                self.MD['liveTableExists'] = True
-                lastBusDay = datetime.datetime.today()
-                lastBusDay = lastBusDay.replace(day=12,hour=0, minute=0, second=0, microsecond=0)
-                
-                for tkn in self.MD['listtokens']:
-                    exchange = tkn.split('|')[0]
-                    token = tkn.split('|')[1]
-                    tradingsymbol = tkn.split('|')[2]
-                    self.log.info(tradingsymbol)
-                    ret = self.get_time_price_series(exchange=exchange, token=token, starttime=lastBusDay.timestamp(), interval=1)
-                    if ret:
-                        for row in ret:
-                            if row['stat']=='Ok':
-                                tm = datetime.datetime.strptime(row['time'],'%d-%m-%Y %H:%M:%S')
-                                minute = SharedMethods.m0915(tm.hour,tm.minute)
-                                if minute == 375:
-                                    self.MD["ltp"][tradingsymbol]=SharedMethods.rp(row['intc'])
-                                c.execute('''INSERT OR IGNORE INTO live (tradingsymbol, minute, openp, highp, lowp, closep, volume) VALUES (?,?,?,?,?,?,?) ''',
-                                    (tradingsymbol,minute,
-                                    SharedMethods.rp(row['into']),
-                                    SharedMethods.rp(row['inth']),
-                                    SharedMethods.rp(row['intl']),
-                                    SharedMethods.rp(row['intc']),
-                                    int(row['intv'])))
-                self.connMem.commit()
-            self.analyse_data()
-
     def login_using_totp_only(self,TOTP):
         with open("cred.yaml","r") as stream:
             cred = yaml.safe_load(stream)
@@ -95,6 +39,64 @@ class ShoonyaApi(NorenApi):
                         socket_close_callback=self.close_callback
                     )
             return msg
+    #for after market hours but code duplicacy  
+    def aftermarket(self):
+        if self.af:
+            return "Data for aftermarket hours has already been fetched."
+        self.af = True 
+        self.log.info(self.MD)
+        #create info table
+        c = self.connMem.cursor()
+        c.execute('''CREATE TABLE IF NOT EXISTS info (
+                        tradingsymbol TEXT,
+                        ucp INTEGER,
+                        lcp INTEGER,
+                        PRIMARY KEY (tradingsymbol)
+                            )''')
+        for i in self.MD['listtokens']:
+            c.execute('''INSERT OR IGNORE INTO info (tradingsymbol, ucp, lcp) VALUES (?,?,?)''',
+                    (i.rsplit('|', 1)[1],0,0))
+        self.connMem.commit()
+        self.MD['infoTableExists'] = True
+        if not self.MD['liveTableExists'] and self.MD['infoTableExists']:
+            c.execute('''CREATE TABLE IF NOT EXISTS live (
+                tradingsymbol TEXT,
+                minute INTEGER,
+                openp INTEGER,
+                highp INTEGER,
+                lowp INTEGER,
+                closep INTEGER,
+                volume INTEGER,
+                PRIMARY KEY (tradingsymbol,minute)
+                )''')
+            self.connMem.commit()
+            self.MD['liveTableExists'] = True
+            lastBusDay = datetime.datetime.today()
+            lastBusDay = lastBusDay.replace(day=12,hour=0, minute=0, second=0, microsecond=0)
+            
+            for tkn in self.MD['listtokens']:
+                exchange = tkn.split('|')[0]
+                token = tkn.split('|')[1]
+                tradingsymbol = tkn.split('|')[2]
+                self.log.info(tradingsymbol)
+                ret = self.get_time_price_series(exchange=exchange, token=token, starttime=lastBusDay.timestamp(), interval=1)
+                if ret:
+                    for row in ret:
+                        if row['stat']=='Ok':
+                            tm = datetime.datetime.strptime(row['time'],'%d-%m-%Y %H:%M:%S')
+                            minute = SharedMethods.m0915(tm.hour,tm.minute)
+                            if minute == 375:
+                                self.MD["ltp"][tradingsymbol]=SharedMethods.rp(row['intc'])
+                            c.execute('''INSERT OR IGNORE INTO live (tradingsymbol, minute, openp, highp, lowp, closep, volume) VALUES (?,?,?,?,?,?,?) ''',
+                                (tradingsymbol,minute,
+                                SharedMethods.rp(row['into']),
+                                SharedMethods.rp(row['inth']),
+                                SharedMethods.rp(row['intl']),
+                                SharedMethods.rp(row['intc']),
+                                int(row['intv'])))
+            self.connMem.commit()
+        self.analyse_data()
+        return "Data for aftermarket hours has been fetched."
         
     def event_handler_feed_update(self,tick_data):
         if not self.feedOpen:
