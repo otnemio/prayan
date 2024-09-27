@@ -172,11 +172,12 @@ def Live(name):
         if hasattr(api,'_NorenApi__username'):
             status = 'OK'
             s = name.upper().rsplit('-')[0]
-            ins = Instrument(s)
-            msg = { "Instrument":s,
+            ins = Instrument(s,exch='NFO' if s in['NIFTY','MIDCPNIFTY','BANKNIFTY','FINNIFTY'] else 'NSE')
+            msg = { "Instrument":ins.name,
                     "LTP":api.MD["ltp"][ins.tradename] if ins.tradename in api.MD["ltp"] else None,
                     "PriceLine":ins.priceline(),
-                    "OHLCV":{0:(2,5,2,5,500),1:(5,6,2,3,300)}}
+                    "OHLCV":{0:(2,5,2,5,510),1:(5,6,2,3,300)},
+                    "OptionDataCP":ins.optionDataCP() if ins.exch == 'NFO' else None }
         else:
             status = 'NOK'
             msg = "Not logged in."

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-class SharedMethods():
+class SM():
     def rp(rs):
         return int(100*float(rs))
 

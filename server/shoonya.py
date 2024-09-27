@@ -1,6 +1,6 @@
 from NorenRestApiPy.NorenApi import NorenApi
 from logger import logger
-from sharedmethods import SharedMethods
+from sharedmethods import SM
 import sqlite3, datetime, time, pandas as pd, yaml, warnings
 
 class ShoonyaApi(NorenApi):
@@ -84,15 +84,15 @@ class ShoonyaApi(NorenApi):
                     for row in ret:
                         if row['stat']=='Ok':
                             tm = datetime.datetime.strptime(row['time'],'%d-%m-%Y %H:%M:%S')
-                            minute = SharedMethods.m0915(tm.hour,tm.minute)
+                            minute = SM.m0915(tm.hour,tm.minute)
                             if minute == 375:
-                                self.MD["ltp"][tradingsymbol]=SharedMethods.rp(row['intc'])
+                                self.MD["ltp"][tradingsymbol]=SM.rp(row['intc'])
                             c.execute('''INSERT OR IGNORE INTO live (tradingsymbol, minute, openp, highp, lowp, closep, volume) VALUES (?,?,?,?,?,?,?) ''',
                                 (tradingsymbol,minute,
-                                SharedMethods.rp(row['into']),
-                                SharedMethods.rp(row['inth']),
-                                SharedMethods.rp(row['intl']),
-                                SharedMethods.rp(row['intc']),
+                                SM.rp(row['into']),
+                                SM.rp(row['inth']),
+                                SM.rp(row['intl']),
+                                SM.rp(row['intc']),
                                 int(row['intv'])))
             self.connMem.commit()
         self.analyse_data()
@@ -122,7 +122,7 @@ class ShoonyaApi(NorenApi):
                             )''')
             if 'uc' in tick_data:
                 c.execute('''INSERT OR IGNORE INTO info (tradingsymbol, ucp, lcp) VALUES (?,?,?)''',
-                        (tick_data['ts'],SharedMethods.rp(tick_data['uc']),SharedMethods.rp(tick_data['lc'])))
+                        (tick_data['ts'],SM.rp(tick_data['uc']),SM.rp(tick_data['lc'])))
             self.connMem.commit()
             self.MD['infoTableExists'] = True
         if tick_data['t']=='df' and not self.MD['liveTableExists'] and self.MD['infoTableExists']:    
@@ -149,18 +149,18 @@ class ShoonyaApi(NorenApi):
                     for row in ret:
                         if row['stat']=='Ok':
                             tm = datetime.datetime.strptime(row['time'],'%d-%m-%Y %H:%M:%S')
-                            minute = SharedMethods.m0915(tm.hour,tm.minute)
+                            minute = SM.m0915(tm.hour,tm.minute)
                             c.execute('''INSERT OR IGNORE INTO live (tradingsymbol, minute, openp, highp, lowp, closep, volume) VALUES (?,?,?,?,?,?,?) ''',
                                 (self.MD['tradingsymbol'][token],minute,
-                                SharedMethods.rp(row['into']),
-                                SharedMethods.rp(row['inth']),
-                                SharedMethods.rp(row['intl']),
-                                SharedMethods.rp(row['intc']),
+                                SM.rp(row['into']),
+                                SM.rp(row['inth']),
+                                SM.rp(row['intl']),
+                                SM.rp(row['intc']),
                                 int(row['intv'])))
             self.connMem.commit()
         if self.MD['liveTableExists'] and self.MD['infoTableExists'] and 'ft' in tick_data:    
             tm = time.localtime(int(tick_data['ft']))
-            minute = SharedMethods.m0915(tm.tm_hour,tm.tm_min)
+            minute = SM.m0915(tm.tm_hour,tm.tm_min)
             tradingsymbol = self.MD['tradingsymbol'][tick_data['tk']]
             c.execute('''SELECT * FROM live WHERE tradingsymbol = ? AND minute = ?''',(tradingsymbol,minute,))
             row = c.fetchone()
@@ -204,15 +204,15 @@ class ShoonyaApi(NorenApi):
                 if not row:
                     c.execute('''INSERT OR IGNORE INTO live (tradingsymbol, minute, openp, highp, lowp, closep, volume) VALUES (?,?,?,?,?,?,?) ''',
                         (tradingsymbol,minute,
-                            SharedMethods.rp(tick_data['lp']),
-                            SharedMethods.rp(tick_data['lp']),
-                            SharedMethods.rp(tick_data['lp']),
-                            SharedMethods.rp(tick_data['lp']),
+                            SM.rp(tick_data['lp']),
+                            SM.rp(tick_data['lp']),
+                            SM.rp(tick_data['lp']),
+                            SM.rp(tick_data['lp']),
                             0))
                 else:        
-                    nhighp = max(row[3],SharedMethods.rp(tick_data['lp']))
-                    nlowp = min(row[4],SharedMethods.rp(tick_data['lp']))
-                    nclosep = SharedMethods.rp(tick_data['lp'])
+                    nhighp = max(row[3],SM.rp(tick_data['lp']))
+                    nlowp = min(row[4],SM.rp(tick_data['lp']))
+                    nclosep = SM.rp(tick_data['lp'])
                     c.execute('''UPDATE live SET highp = ?, lowp = ?, closep =?, volume =? WHERE tradingsymbol = ? AND minute =?''',
                     (nhighp,nlowp,nclosep,1,tradingsymbol,minute))
                 self.connMem.commit()
@@ -427,12 +427,14 @@ class Instrument():
     name:str
     exch:str
     tradename:str
-    def __init__(self,name:str,exch:str='NSE') -> None:
+    def __init__(self,name:str,exch:str) -> None:
         self.name = name.upper()
         self.exch = exch.upper()
         self.tradename =  name if self.exch !='NSE' else f'{name}-EQ'
-    def priceline(minutes:int=1):
-        return [ SharedMethods.rp(301.25),SharedMethods.rp(301.85),SharedMethods.rp(301.75) ]
+    def priceline(self,minutes:int=1):
+        return [ SM.rp(301.25),SM.rp(301.85),SM.rp(301.75) ]
+    def optionDataCP(self):
+        return {24700:(SM.rp(12),SM.rp(450)),24600:(SM.rp(22),SM.rp(350))}
     
     
     
