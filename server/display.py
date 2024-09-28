@@ -47,7 +47,7 @@ layout["lower"].split_row(
     Layout(name="right"),
 )
 
-with Live(layout, refresh_per_second=10) as live:
+with Live(layout, refresh_per_second=1) as live:
     while True:
         tableOptions = generate_options_table()
         tableTrail = generate_trail_table()
