@@ -8,4 +8,3 @@ requests
 PyYAML
 flask
 waitress
-TA-Lib
