@@ -1,7 +1,7 @@
 from NorenRestApiPy.NorenApi import NorenApi
 from logger import logger
 from sharedmethods import SM
-import sqlite3, datetime, time, pandas as pd, yaml, warnings
+import sqlite3, datetime, time, pandas as pd, yaml, warnings, os
 
 class ShoonyaApi(NorenApi):
     
@@ -14,7 +14,7 @@ class ShoonyaApi(NorenApi):
         self.log = logger()
         self.connMem = sqlite3.connect(':memory:', check_same_thread=False)
         self.MD = {'orders':{},'ltp':{},'tradingsymbol':{},'liveTableExists':False, 'infoTableExists':False,
-          'listtokens':[],'df_orders':None, 'df_holdings':None,'df_positions':None,
+          'listtokens':[],'df_orders':None, 'df_holdings':None,'df_positions':None, 'df_symbols':None,
           'trailable':{},'follow':{},'forward':{},'timed':{},'forwarded':{}}
         with open("instruments.yaml","r") as stream:
             instruments = yaml.safe_load(stream)
@@ -24,6 +24,9 @@ class ShoonyaApi(NorenApi):
                         tradingsymbol = f"{key}-EQ" if exch =='NSE' else key
                         self.MD['listtokens'].append(f"{exch}|{token}|{tradingsymbol}")
                         self.MD['tradingsymbol'][f"{token}"]=tradingsymbol
+        self.MD['df_symbols'] = pd.readcsv("data/NFO_symbols.txt")
+            
+        
     def login_using_totp_only(self,TOTP):
         with open("cred.yaml","r") as stream:
             cred = yaml.safe_load(stream)
@@ -437,4 +440,7 @@ class Instrument():
         return {24700:(SM.rp(12),SM.rp(450)),24600:(SM.rp(22),SM.rp(350))}
     
     
-    
+
+if __name__=='__main__':
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    api= ShoonyaApi()
