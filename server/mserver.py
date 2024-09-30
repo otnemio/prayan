@@ -177,7 +177,7 @@ def Live(name):
                     "LTP":api.MD["ltp"][ins.tradename] if ins.tradename in api.MD["ltp"] else None,
                     "PriceLine":ins.priceline(),
                     "OHLCV":{0:(2,5,2,5,510),1:(5,6,2,3,300)},
-                    "OptionDataCP":ins.optionDataCP() if ins.exch == 'NFO' else None }
+                    "OptionDataCP":ins.optionDataCP(api) if ins.exch == 'NFO' else None }
         else:
             status = 'NOK'
             msg = "Not logged in."
@@ -202,7 +202,7 @@ def TrailOrder(tradingsymbol:str):
                             price=float(request.args.get('p')), trigger_price=float(request.args.get('tp')),
                             retention='DAY', remarks='place_order')
                     if ret:
-                        api.log.info(f"Trail order placed successfully {ret['norenordno']}")
+                        api.log.info(f"Trailable order placed successfully {ret['norenordno']}")
                         api.trail_order(ret['norenordno'],buy_or_sell='S' if request.args.get('bos')=='b' else 'B',
                                         product_type='M',
                             exchange='BFO' if tradingsymbol.startswith('SENSEX') else 'NFO', tradingsymbol=tradingsymbol, 
@@ -223,7 +223,7 @@ def TrailOrder(tradingsymbol:str):
                             price=float(request.args.get('p')), trigger_price=float(request.args.get('tp')),
                             retention='DAY', remarks='place_order')
                     if ret:
-                        api.log.info(f"Trail order placed successfully {ret['norenordno']}")
+                        api.log.info(f"Trailable order placed successfully {ret['norenordno']}")
                         api.trail_order(ret['norenordno'],buy_or_sell='S' if request.args.get('bos')=='b' else 'B',
                                         product_type='M',
                             exchange='MCX', tradingsymbol=tradingsymbol, 
@@ -244,7 +244,7 @@ def TrailOrder(tradingsymbol:str):
                             price=float(request.args.get('p')), trigger_price=float(request.args.get('tp')),
                             retention='DAY', remarks='place_order')
                     if ret:
-                        api.log.info(f"Trail order placed successfully {ret['norenordno']}")
+                        api.log.info(f"Trailable order placed successfully {ret['norenordno']}")
                         api.trail_order(ret['norenordno'],buy_or_sell='S' if request.args.get('bos')=='b' else 'B',
                                         product_type='I',
                             exchange='NSE', tradingsymbol=tradingsymbol, 

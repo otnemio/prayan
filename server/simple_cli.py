@@ -35,16 +35,16 @@ class Requester():
                     i = Prompt.ask("Index- MidcapNifty(m) Finnifty(f) BankNifty(b) Nifty(n) Sensex(s)",choices=['m','f','b','n','s'])
                     date = Prompt.ask("Date")
                 else:
-                    i = ['m','f','b','n','s'][datetime.today().weekday()-1]
+                    i = ['m','f','b','n','s'][datetime.today().weekday()]
                     if i == 's':
                         #yet to do 
                         date = datetime.today().strftime("%y%d%b")    
                     date = datetime.today().strftime("%d%b%y")
                 bscp = Prompt.ask("Buy/Sell Call/Put",choices=['bc','bp','sc','sp'])
                 strike = Prompt.ask("Strike Price")
-                trg = Prompt.ask("Trigger Price")
-                q = Prompt.ask("Quantity (Lots)")
-                pq = Prompt.ask("Partial Profit Booking Quantity Percent",choices=[25,50,75],default=50)
+                trg = float(Prompt.ask("Trigger Price"))
+                q = int(Prompt.ask("Quantity (Lots)"))
+                pq = int(Prompt.ask("Partial Profit Booking Quantity Percent",choices=['25','50','75'],default='50'))
                 match i:
                     case 'm':
                         lotsize = 50

@@ -24,8 +24,14 @@ class ShoonyaApi(NorenApi):
                         tradingsymbol = f"{key}-EQ" if exch =='NSE' else key
                         self.MD['listtokens'].append(f"{exch}|{token}|{tradingsymbol}")
                         self.MD['tradingsymbol'][f"{token}"]=tradingsymbol
-        self.MD['df_symbols'] = pd.readcsv("data/NFO_symbols.txt")
-            
+        self.MD['df_symbols'] = pd.read_csv("data/NFO_symbols.txt")
+        for i in [12500,12800,12850,12900,12950,13000,13050,13100,13150,13200,13250,13300,13350,13400,13450,13500,14000]:
+            y = self.MD['df_symbols'].loc[self.MD['df_symbols']['Expiry']=='30-SEP-2024'].loc[self.MD['df_symbols']['StrikePrice']==i].iloc[0]
+            z = self.MD['df_symbols'].loc[self.MD['df_symbols']['Expiry']=='30-SEP-2024'].loc[self.MD['df_symbols']['StrikePrice']==i].iloc[1]
+            self.MD['listtokens'].append(f"{y['Exchange']}|{y['Token']}|{y['TradingSymbol']}")
+            self.MD['tradingsymbol'][f"{y['Token']}"]=y['TradingSymbol']
+            self.MD['listtokens'].append(f"{z['Exchange']}|{z['Token']}|{z['TradingSymbol']}")
+            self.MD['tradingsymbol'][f"{z['Token']}"]=z['TradingSymbol']
         
     def login_using_totp_only(self,TOTP):
         with open("cred.yaml","r") as stream:
@@ -436,8 +442,12 @@ class Instrument():
         self.tradename =  name if self.exch !='NSE' else f'{name}-EQ'
     def priceline(self,minutes:int=1):
         return [ SM.rp(301.25),SM.rp(301.85),SM.rp(301.75) ]
-    def optionDataCP(self):
-        return {24700:(SM.rp(12),SM.rp(450)),24600:(SM.rp(22),SM.rp(350))}
+    def optionDataCP(self,api):
+        d = {}
+        for i in [12500,12800,12850,12900,12950,13000,13050,13100,13150,13200,13250,13300,13350,13400,13450,13500,14000]:
+            d[i]=(api.MD['ltp'][f'MIDCPNIFTY30SEP24C{i}'] if f'MIDCPNIFTY30SEP24C{i}' in api.MD['ltp'] else None,
+                  api.MD['ltp'][f'MIDCPNIFTY30SEP24P{i}'] if f'MIDCPNIFTY30SEP24P{i}' in api.MD['ltp'] else None,)    
+        return d
     
     
 
