@@ -1,4 +1,4 @@
-from NorenRestApiPy.NorenApi import NorenApi
+from NorenApi import NorenApi
 from logger import logger
 from sharedmethods import SM
 import sqlite3, datetime, time, pandas as pd, yaml, warnings, os

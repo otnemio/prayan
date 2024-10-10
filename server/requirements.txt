@@ -2,7 +2,6 @@ grpcio
 grpcio-tools
 pandas
 rich
-websocket
 websocket-client
 requests
 PyYAML
