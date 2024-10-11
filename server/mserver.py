@@ -202,6 +202,7 @@ def TrailOrder(tradingsymbol:str):
                             price=float(request.args.get('p')), trigger_price=float(request.args.get('tp')),
                             retention='DAY', remarks='place_order')
                     if ret:
+                        msg = "Order punching successful."
                         api.log.info(f"Trailable order placed successfully {ret['norenordno']}")
                         api.trail_order(ret['norenordno'],buy_or_sell='S' if request.args.get('bos')=='b' else 'B',
                                         product_type='M',
@@ -215,6 +216,8 @@ def TrailOrder(tradingsymbol:str):
                             quantity=int(request.args.get('fq')), discloseqty=0, price_type='LMT', 
                             price=float(request.args.get('fp')),
                             retention='DAY', remarks='place_order')
+                    else:
+                        msg = "Order punching unsuccessful."
                 case 'mo':
                     ret = api.place_order(buy_or_sell='B' if request.args.get('bos')=='b' else 'S',
                                             product_type='M',
@@ -223,6 +226,7 @@ def TrailOrder(tradingsymbol:str):
                             price=float(request.args.get('p')), trigger_price=float(request.args.get('tp')),
                             retention='DAY', remarks='place_order')
                     if ret:
+                        msg = "Order punching successful."
                         api.log.info(f"Trailable order placed successfully {ret['norenordno']}")
                         api.trail_order(ret['norenordno'],buy_or_sell='S' if request.args.get('bos')=='b' else 'B',
                                         product_type='M',
@@ -236,6 +240,8 @@ def TrailOrder(tradingsymbol:str):
                             quantity=int(request.args.get('fq')), discloseqty=0, price_type='LMT', 
                             price=float(request.args.get('fp')),
                             retention='DAY', remarks='place_order')
+                    else:
+                        msg = "Order punching unsuccessful."
                 case 'e':
                     ret = api.place_order(buy_or_sell='B' if request.args.get('bos')=='b' else 'S',
                                             product_type='I',
@@ -244,6 +250,7 @@ def TrailOrder(tradingsymbol:str):
                             price=float(request.args.get('p')), trigger_price=float(request.args.get('tp')),
                             retention='DAY', remarks='place_order')
                     if ret:
+                        msg = "Order punching successful."
                         api.log.info(f"Trailable order placed successfully {ret['norenordno']}")
                         api.trail_order(ret['norenordno'],buy_or_sell='S' if request.args.get('bos')=='b' else 'B',
                                         product_type='I',
@@ -257,8 +264,10 @@ def TrailOrder(tradingsymbol:str):
                             quantity=int(request.args.get('fq')), discloseqty=0, price_type='LMT', 
                             price=float(request.args.get('fp')),
                             retention='DAY', remarks='place_order')
+                    else:
+                        msg = "Order punching unsuccessful."
             
-            msg = "Order punched."
+            
         else:
             status = 'NOK'
             msg = "Not logged in."
