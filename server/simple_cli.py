@@ -64,9 +64,9 @@ class Requester():
                         lotsize = 10
                         instruname = f"SENSEX{date.upper()}{strike}{bscp[1].upper()}E"
         if bscp[0] == 'b':
-            r = requests.get(f"{serverurl}/to/{instruname}?bos=b&t={t}&q={lotsize*q}&fq={lotsize*(q*pq//100)}&p={trg+0.2}&tp={trg+0.05}&slp={trg-3-0.2}&sltp={trg-3-0.05}&fp={trg+2}")
+            r = requests.get(f"{serverurl}/to/{instruname}?bos=b&t={t}&q={lotsize*q}&fq={lotsize*(q*pq//100)}&p={trg+0.2*trg//100}&tp={trg+0.05}&slp={trg-3-0.2*trg//50}&sltp={trg-3-0.05}&fp={trg+1+trg//100}")
         else:
-            r = requests.get(f"{serverurl}/to/{instruname}?bos=s&t={t}&q={lotsize*q}&fq={lotsize*(q*pq//100)}&p={trg-0.2}&tp={trg-0.05}&slp={trg+3+0.2}&sltp={trg+3+0.05}&fp={trg-2}")
+            r = requests.get(f"{serverurl}/to/{instruname}?bos=s&t={t}&q={lotsize*q}&fq={lotsize*(q*pq//100)}&p={trg-0.2*trg//100}&tp={trg-0.05}&slp={trg+3+0.2*trg//50}&sltp={trg+3+0.05}&fp={trg-1-trg//100}")
         if r.status_code == 200:
             print(r.json()['Msg'])
     def fnolist(self):
