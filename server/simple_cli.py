@@ -37,9 +37,11 @@ class Requester():
                 else:
                     i = ['m','f','b','n','s'][datetime.today().weekday()]
                     if i == 's':
-                        #yet to do 
-                        date = datetime.today().strftime("%y%d%b")    
-                    date = datetime.today().strftime("%d%b%y")
+                        #yet to do
+                        m =  datetime.today().strftime("%b")[0]
+                        date = datetime.today().strftime(f"%y{m}%d")
+                    else:
+                        date = datetime.today().strftime("%d%b%y")
                 bscp = Prompt.ask("Buy/Sell Call/Put",choices=['bc','bp','sc','sp'])
                 strike = Prompt.ask("Strike Price")
                 trg = float(Prompt.ask("Trigger Price"))
