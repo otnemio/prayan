@@ -39,8 +39,13 @@ Future<Map<String, dynamic>> getHoldings() async {
 }
 
 Future<Map<String, dynamic>> getLimits() async {
+  try {
   var url = Uri.http('192.168.29.6:8080', '/limits');
   final response = await http.get(url);
   var jObj = jsonDecode(response.body);
   return jObj;
+  } on http.ClientException catch(e){
+    Map<String, dynamic> map = {'err':e.message};
+    return map;
+  }
 }

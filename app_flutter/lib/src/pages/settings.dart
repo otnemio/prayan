@@ -81,12 +81,15 @@ class _SettingsState extends State<Settings> {
 }
 
 Future<String> getLoginStatus() async {
+  try {
   var url = Uri.http('192.168.29.6:8080', '/loggedin');
   final response = await http.get(url);
   var jObj = jsonDecode(response.body);
   return jObj['Msg'];
+  } on http.ClientException catch(e){
+  return Future.value(e.message);
+  }
 }
-
 Future<dynamic> setLoginTOTP(String tOTP) async {
   final queryParameters = {
     'totp': '$tOTP',
